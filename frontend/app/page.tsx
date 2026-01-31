@@ -233,3 +233,4 @@ export default function Terminal() {
     </div>
   );
 }
+// Force rebuild for API URL fix
