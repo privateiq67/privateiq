@@ -26,12 +26,6 @@ else:
     print("   [WARNING] Tesseract not found! OCR will fail.")
 
 def fetch_and_parse_filing(document_metadata_url, api_key):
-    # (Rest of your code remains exactly the same...)
-    
-def fetch_and_parse_filing(document_metadata_url, api_key):
-    if not os.path.exists(TESSERACT_PATH):
-        return {"parsing_status": "config_error"}
-
     try:
         # 1. DOWNLOAD
         print(f"   [1] Fetching Metadata...")
@@ -75,7 +69,7 @@ def fetch_and_parse_filing(document_metadata_url, api_key):
                             'y': w[1]
                         })
                 else:
-                    # 2. Image/Scan Fallback (The Missing Link)
+                    # 2. Image/Scan Fallback (Critical for Cloud/Scans)
                     # We use image_to_data to get coordinates from pixels
                     pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
                     img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
@@ -120,7 +114,7 @@ def fetch_and_parse_filing(document_metadata_url, api_key):
                 if page_words:
                     current_row = [page_words[0]]
                     for w in page_words[1:]:
-                        # If within 10px vertical tolerance (relative to density, 10 is safe estimate)
+                        # If within 15px vertical tolerance
                         if abs(w['y'] - current_row[-1]['y']) < 15: 
                             current_row.append(w)
                         else:
@@ -155,28 +149,24 @@ def fetch_and_parse_filing(document_metadata_url, api_key):
 
                     if not candidates: continue
                     
-                    # Sort candidates left-to-right (Current Year is usually first on the right side)
+                    # Sort candidates left-to-right
                     candidates.sort(key=lambda c: c['x'])
                     best_val = candidates[0]['val'] * scale
 
                     # MAPPING
                     if ("turnover" in row_text or "revenue" in row_text) and "is_revenue" not in extracted_data:
                         extracted_data["is_revenue"] = best_val
-                        print(f"      -> Revenue: {best_val}")
 
                     if "operating" in row_text and ("profit" in row_text or "loss" in row_text) and "is_ebit" not in extracted_data:
                         extracted_data["is_ebit"] = best_val
-                        print(f"      -> EBIT: {best_val}")
 
                     if "profit" in row_text and ("financial year" in row_text or "for the year" in row_text) and "before" not in row_text:
                         if "is_net_income" not in extracted_data:
                             extracted_data["is_net_income"] = best_val
-                            print(f"      -> Net Income: {best_val}")
                     
                     # Balance Sheet Matches
                     if "net assets" in row_text and "current" not in row_text:
                         extracted_data["bs_total_assets"] = best_val
-                        print(f"      -> Net Assets: {best_val}")
                         
                     if "creditors" in row_text and "within one year" in row_text:
                          extracted_data["bs_curr_liab"] = abs(best_val)
@@ -184,7 +174,6 @@ def fetch_and_parse_filing(document_metadata_url, api_key):
                     if "creditors" in row_text and "more than one year" in row_text:
                          extracted_data["bs_total_liab"] = abs(best_val)
                     
-                    # Attempt Current Assets (Header vs Total)
                     if "current assets" in row_text and "less" not in row_text and "net" not in row_text:
                         if "bs_curr_assets" not in extracted_data:
                              extracted_data["bs_curr_assets"] = best_val
@@ -202,5 +191,5 @@ def fetch_and_parse_filing(document_metadata_url, api_key):
             }
 
     except Exception as e:
-        print(f"   [ERROR] {e}")
+        print(f"   [CRITICAL PARSER ERROR] {e}")
         return None
