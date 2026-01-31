@@ -36,7 +36,8 @@ export default function Terminal() {
   const search = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/search?q=${query}`);
+      // HARDCODED BACKEND URL
+      const res = await fetch(`https://private-iq-backend.onrender.com/api/search?q=${query}`);
       const data = await res.json();
       setResults(data.items || []);
     } catch (err) { console.error(err); }
@@ -49,13 +50,15 @@ export default function Terminal() {
     setValuation(null);
     
     try {
-      const finRes = await fetch(`http://127.0.0.1:8000/api/company/${c.company_number}/financials`);
+      // HARDCODED BACKEND URL
+      const finRes = await fetch(`https://private-iq-backend.onrender.com/api/company/${c.company_number}/financials`);
       const finData = await finRes.json();
       setFinancials(finData);
 
       if (c.title) {
         const params = new URLSearchParams({ name: c.title });
-        const newsRes = await fetch(`http://127.0.0.1:8000/api/news?${params.toString()}`);
+        // HARDCODED BACKEND URL
+        const newsRes = await fetch(`https://private-iq-backend.onrender.com/api/news?${params.toString()}`);
         if (newsRes.ok) {
           const newsData = await newsRes.json();
           setNews(newsData.news || []);
@@ -120,7 +123,7 @@ export default function Terminal() {
                     <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Implied P/S Ratio</div>
                     {/* Backend sends full number now, so valuation must be scaled to Millions too for ratio */}
                     <div className="text-2xl font-mono text-green-400">
-                       {mul(valuation.amount_m * 1000000, financials.years[0].income_statement.Revenue.value)}
+                        {mul(valuation.amount_m * 1000000, financials.years[0].income_statement.Revenue.value)}
                     </div>
                     <div className="text-xs text-slate-500">Based on latest revenue</div>
                   </div>
@@ -233,4 +236,4 @@ export default function Terminal() {
     </div>
   );
 }
-// Force rebuild for API URL fix
+// Force rebuild for Hardcoded URL fix
