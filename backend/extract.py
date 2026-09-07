@@ -64,14 +64,17 @@ def parse_filing_bytes(
         intermediate = rows_to_year_dicts(rows, filing_date=filing_date, source_url=source_url)
         normalised = []
         for block in intermediate:
+            status = block.get("parsing_status") or "pdf"
             normalised.append(
                 apply_labelled_items(
                     block.get("labelled") or [],
                     period=block.get("period") or "unknown",
                     filing_date=block.get("filing_date") or filing_date,
-                    parsing_status="pdf",
+                    parsing_status=status,
                 )
             )
+        if not normalised and (stats.get("ocr_required") or stats.get("image_only")):
+            meta["parsing_status"] = stats.get("parsing_status") or "ocr_required"
         return normalised, meta
 
     return [], {**meta, "error": f"unsupported_kind:{kind}"}
@@ -100,6 +103,10 @@ def parse_filing_from_metadata(
     return years, meta
 
 
+def _year_has_numbers(year: dict) -> bool:
+    return any(year.get(s) for s in ("income_statement", "balance_sheet", "cash_flow"))
+
+
 def build_financials_for_company(
     company_number: str,
     filings: list[dict],
@@ -111,70 +118,109 @@ def build_financials_for_company(
     cache_put=None,
 ) -> dict[str, Any]:
     """
-    Walk accounts filings, prefer cache hits, parse iXBRL/PDF, merge by period.
+    Walk accounts filings (typically newest-first from CH), prefer cache hits,
+    parse iXBRL/PDF, merge by period.
+
+    Important: do NOT stop early just because older iXBRL years already filled
+    ``by_period``. Recent Companies House full accounts are often scanned
+    PDF-only; those must still be attempted even when 2019/2020 iXBRL exists.
+
     cache_get(company_number, period) -> year dict | None
     cache_put(company_number, year_dict) -> None
     """
     by_period: dict[str, dict] = {}
     parse_log: list[dict] = []
+    filings_attempted = 0
+    # Track period hints from the newest filings we care about so we know when
+    # recent years are covered (vs only older iXBRL years).
+    newest_hints: list[str] = []
 
     for filing in filings:
-        if len(by_period) >= max_filings and len(parse_log) >= max_filings:
-            break
         links = filing.get("links") or {}
         meta_url = links.get("document_metadata")
         if not meta_url:
             continue
+
         filing_date = filing.get("date") or ""
         period_hint = period_from_filing(filing)
+        if period_hint and len(newest_hints) < max_filings:
+            newest_hints.append(period_hint)
+
+        # Cap work by number of filings attempted, not by periods already found.
+        # One iXBRL filing often yields two years; that must not block newer PDFs.
+        if filings_attempted >= max_filings:
+            break
 
         if cache_get and period_hint:
             cached = cache_get(company_number, period_hint)
-            if cached and cached.get("parsing_status") in ("ixbrl", "pdf", "fixture"):
-                # Only reuse if it has some numbers
-                has = any(
-                    cached.get(s)
-                    for s in ("income_statement", "balance_sheet", "cash_flow")
-                )
-                if has:
-                    by_period.setdefault(period_hint, cached)
-                    parse_log.append({"period": period_hint, "source": "cache"})
-                    continue
+            ok_status = cached and cached.get("parsing_status") in (
+                "ixbrl",
+                "pdf",
+                "pdf_ocr",
+                "fixture",
+            )
+            if ok_status and _year_has_numbers(cached):
+                by_period.setdefault(period_hint, cached)
+                parse_log.append({"period": period_hint, "source": "cache"})
+                filings_attempted += 1
+                continue
 
+        filings_attempted += 1
         years, meta = parse_filing_from_metadata(
             meta_url,
             api_key,
             filing_date=filing_date,
             allow_ocr=allow_ocr,
         )
-        parse_log.append({"period_hint": period_hint, "meta": meta, "years": [y.get("period") for y in years]})
+        parse_log.append(
+            {
+                "period_hint": period_hint,
+                "meta": meta,
+                "years": [y.get("period") for y in years],
+            }
+        )
 
+        rank = {
+            "ixbrl": 4,
+            "pdf_ocr": 3,
+            "pdf": 2,
+            "fixture": 1,
+            "partial": 0,
+            "failed": -1,
+            "ocr_required": -1,
+        }
         for y in years:
             p = y.get("period") or period_hint
             if not p:
                 continue
             y["period"] = p
-            # Prefer ixbrl over pdf for same period; prefer more populated
             existing = by_period.get(p)
             if existing is None:
                 by_period[p] = y
-            else:
-                rank = {"ixbrl": 3, "pdf": 2, "fixture": 1, "partial": 0, "failed": -1}
-                if rank.get(y.get("parsing_status"), 0) > rank.get(existing.get("parsing_status"), 0):
-                    by_period[p] = y
+            elif rank.get(y.get("parsing_status"), 0) > rank.get(
+                existing.get("parsing_status"), 0
+            ):
+                by_period[p] = y
             if cache_put:
                 try:
                     cache_put(company_number, by_period[p])
                 except Exception as e:
                     logger.warning("cache_put failed: %s", e)
 
-        if len(by_period) >= 3:
-            # Keep scanning a bit for better status upgrades but stop early enough
-            if all(
-                by_period[p].get("parsing_status") == "ixbrl"
-                for p in list(by_period)[:3]
-            ):
-                break
+        # Early-exit only when the newest filing period hints are populated with
+        # real numbers — never solely because older iXBRL years filled the dict.
+        if newest_hints and len(newest_hints) >= min(3, max_filings):
+            covered = [
+                h
+                for h in newest_hints[:max_filings]
+                if h in by_period and _year_has_numbers(by_period[h])
+            ]
+            if len(covered) >= min(3, len(newest_hints)):
+                # Still require that we have attempted at least as many filings
+                # as covered hints (prevents stopping after one multi-year iXBRL
+                # that happens to match an old hint list edge case).
+                if filings_attempted >= min(3, max_filings):
+                    break
 
     years_sorted = [by_period[k] for k in sorted(by_period.keys(), reverse=True)]
     return financials_response(

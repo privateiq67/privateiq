@@ -15,11 +15,25 @@ def _ensure_dir():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS financials_cache (
+    company_number TEXT NOT NULL,
+    period TEXT NOT NULL,
+    filing_date TEXT,
+    parsing_status TEXT,
+    payload TEXT NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (company_number, period)
+)
+"""
+
+
 @contextmanager
 def connect():
     _ensure_dir()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute(_SCHEMA)
     try:
         yield conn
         conn.commit()
@@ -29,19 +43,7 @@ def connect():
 
 def init_db():
     with connect() as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS financials_cache (
-                company_number TEXT NOT NULL,
-                period TEXT NOT NULL,
-                filing_date TEXT,
-                parsing_status TEXT,
-                payload TEXT NOT NULL,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (company_number, period)
-            )
-            """
-        )
+        conn.execute(_SCHEMA)
 
 
 def get_cached_year(company_number: str, period: str) -> Optional[dict[str, Any]]:

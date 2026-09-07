@@ -36,6 +36,7 @@ SYNONYMS: dict[str, tuple[str, str]] = {
     "operating profit": ("income_statement", "Operating Profit"),
     "operating loss": ("income_statement", "Operating Profit"),
     "operating profit/(loss)": ("income_statement", "Operating Profit"),
+    "operating (loss)/profit": ("income_statement", "Operating Profit"),
     "profit from operations": ("income_statement", "Operating Profit"),
     "loss from operations": ("income_statement", "Operating Profit"),
     "ebit": ("income_statement", "EBIT"),
@@ -44,11 +45,17 @@ SYNONYMS: dict[str, tuple[str, str]] = {
     "loss before tax": ("income_statement", "Profit Before Tax"),
     "profit/(loss) before tax": ("income_statement", "Profit Before Tax"),
     "profit before taxation": ("income_statement", "Profit Before Tax"),
+    "loss before taxation": ("income_statement", "Profit Before Tax"),
+    "(loss)/profit before taxation": ("income_statement", "Profit Before Tax"),
+    "profit/(loss) before taxation": ("income_statement", "Profit Before Tax"),
     "profit on ordinary activities before taxation": ("income_statement", "Profit Before Tax"),
     "profit for the year": ("income_statement", "Net Income"),
     "loss for the year": ("income_statement", "Net Income"),
     "profit/(loss) for the year": ("income_statement", "Net Income"),
     "profit for the financial year": ("income_statement", "Net Income"),
+    "loss for the financial year": ("income_statement", "Net Income"),
+    "(loss)/profit for the financial year": ("income_statement", "Net Income"),
+    "profit/(loss) for the financial year": ("income_statement", "Net Income"),
     "profit for the period": ("income_statement", "Net Income"),
     "profit after tax": ("income_statement", "Net Income"),
     "net income": ("income_statement", "Net Income"),
@@ -109,13 +116,36 @@ def resolve_label(label: str) -> Optional[tuple[str, str, int]]:
     if key in SYNONYMS:
         stmt, sk = SYNONYMS[key]
         return stmt, sk, CONFIDENCE_LABEL_EXACT
-    # Prefer longest alias contained in key (more specific)
+    # OCR-tolerant UK creditors headings (word order often scrambled)
+    if "creditors" in key and "within" in key:
+        return "balance_sheet", "Current Liabilities", CONFIDENCE_LABEL_FUZZY
+    if "creditors" in key and ("after" in key or "more than one" in key):
+        return "balance_sheet", "Non-Current Liabilities", CONFIDENCE_LABEL_FUZZY
+    # Reject note-line / KPI / charge descriptions that merely contain a synonym
+    if re.search(
+        r"\b(depreciation|amortisation|amortization|impairment|lease charges?|"
+        r"revenue growth|gross profit margin|weekly|compared|underpinned)\b",
+        key,
+    ):
+        return None
+    # Prefer longest alias; require alias to dominate the label (avoid
+    # "net current assets" → Current Assets, "total assets less..." → Total Assets)
     best = None
     best_len = 0
     for alias, target in SYNONYMS.items():
         if len(alias) < 5:
             continue
-        if alias in key and len(alias) > best_len:
+        if alias not in key:
+            continue
+        if key.startswith(alias):
+            rest = key[len(alias):].strip(" :.-")
+            # Allow trailing note refs only; reject "total assets less current..."
+            if rest and not re.fullmatch(r"\d{1,2}", rest):
+                if len(alias) < 0.85 * len(key):
+                    continue
+        elif len(alias) < 0.55 * len(key):
+            continue
+        if len(alias) > best_len:
             best = (target[0], target[1], CONFIDENCE_LABEL_FUZZY)
             best_len = len(alias)
     return best

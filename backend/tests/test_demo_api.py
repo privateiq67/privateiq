@@ -8,15 +8,18 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from fastapi.testclient import TestClient
-
-# Ensure demo mode
 import os
 
+# Clear before and after importing main — load_dotenv() reloads backend/.env
 os.environ.pop("COMPANIES_HOUSE_API_KEY", None)
 os.environ.pop("COMPANIES_HOUSE_KEY", None)
 
+from fastapi.testclient import TestClient
+
 from main import app
+
+os.environ.pop("COMPANIES_HOUSE_API_KEY", None)
+os.environ.pop("COMPANIES_HOUSE_KEY", None)
 
 client = TestClient(app)
 

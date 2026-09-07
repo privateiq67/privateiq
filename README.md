@@ -7,7 +7,7 @@ CapIQ-style terminal for **UK private company financials** — Companies House f
 - `frontend/` Next.js 16 + React 19 + Tailwind 4 (dark CapIQ UI)
 - `backend/` FastAPI
   - `ixbrl.py` Proper iXBRL/XHTML parser (contexts, scale, sign, taxonomy map)
-  - `pdf_extract.py` Careful PDF digital-text pipeline (year columns, units, sections)
+  - `pdf_extract.py` PDF digital-text + smart OCR for scanned CH accounts (year columns, units, sections)
   - `normalize.py` Synonym map + confidence-aware merge + soft BS validation
   - `extract.py` Orchestrator: iXBRL then PDF then cache
   - `fixtures.py` Demo companies when no API key
@@ -26,6 +26,9 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+# For scanned Companies House PDFs (common on recent full accounts):
+#   sudo apt-get install -y tesseract-ocr
+# Docker image already installs tesseract-ocr.
 cp .env.example .env
 uvicorn main:app --reload --port 8000
 ```
@@ -81,8 +84,11 @@ The previous `parser.py` (now `legacy/parser_coord_ocr.py`):
 - Curated FRS 102 / IFRS concept subset — uncommon tags skipped, not guessed
 - Dimensional iXBRL breakdowns ignored so segments do not overwrite entity totals
 - Unusual PDF note columns / wrapped labels can still mis-bind
-- OCR is last-resort; EBITDA is never invented without D&A
+- **Many recent Companies House full accounts are scanned image-only PDFs** (no digital text). Extraction then requires **tesseract** (`tesseract-ocr` apt package + `pytesseract`). Without tesseract, those filings surface `ocr_required` instead of silently returning empty statements.
+- Smart OCR probes low-res / every-Nth page for Balance Sheet / P&L / Cash Flow / Turnover, then full-OCR only candidate pages (±1 neighbour) — not all 50 pages blindly
+- EBITDA is never invented without D&A
 - Balance sheet identity checks are warnings, not hard failures
+- FRS 102 entity accounts often omit a cash-flow statement; CF will be empty when absent from the filing
 
 ## Future work
 
