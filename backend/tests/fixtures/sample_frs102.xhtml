@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ix="http://www.xbrl.org/2013/inlineXBRL"
+      xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2020-01-01"
+      xmlns:xbrli="http://www.xbrl.org/2003/instance"
+      xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+      xmlns:link="http://www.xbrl.org/2003/linkbase"
+      xmlns:uk-bus="http://xbrl.frc.org.uk/cd/2024-01-01/business"
+      xmlns:core="http://xbrl.frc.org.uk/fr/2024-01-01/core"
+      xmlns:iso4217="http://www.xbrl.org/2003/iso4217">
+<head><title>Sample FRS 102 Accounts</title>
+<ix:header>
+  <ix:references>
+    <link:schemaRef xlink:type="simple" xlink:href="https://xbrl.frc.org.uk/FRS-102/2024-01-01/FRS-102-2024-01-01.xsd" xmlns:xlink="http://www.w3.org/1999/xlink"/>
+  </ix:references>
+  <ix:resources>
+    <!-- Current year duration FY2024 -->
+    <xbrli:context id="FY2024">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">08489098</xbrli:identifier></xbrli:entity>
+      <xbrli:period>
+        <xbrli:startDate>2023-10-01</xbrli:startDate>
+        <xbrli:endDate>2024-09-30</xbrli:endDate>
+      </xbrli:period>
+    </xbrli:context>
+    <!-- Comparative FY2023 -->
+    <xbrli:context id="FY2023">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">08489098</xbrli:identifier></xbrli:entity>
+      <xbrli:period>
+        <xbrli:startDate>2022-10-01</xbrli:startDate>
+        <xbrli:endDate>2023-09-30</xbrli:endDate>
+      </xbrli:period>
+    </xbrli:context>
+    <!-- Instant balance sheet dates -->
+    <xbrli:context id="BS2024">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">08489098</xbrli:identifier></xbrli:entity>
+      <xbrli:period><xbrli:instant>2024-09-30</xbrli:instant></xbrli:period>
+    </xbrli:context>
+    <xbrli:context id="BS2023">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">08489098</xbrli:identifier></xbrli:entity>
+      <xbrli:period><xbrli:instant>2023-09-30</xbrli:instant></xbrli:period>
+    </xbrli:context>
+    <!-- Dimensional context should be ignored for totals -->
+    <xbrli:context id="FY2024_SegA">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">08489098</xbrli:identifier></xbrli:entity>
+      <xbrli:period>
+        <xbrli:startDate>2023-10-01</xbrli:startDate>
+        <xbrli:endDate>2024-09-30</xbrli:endDate>
+      </xbrli:period>
+      <xbrli:scenario>
+        <xbrldi:explicitMember dimension="core:SegmentsDimension">core:SegmentA</xbrldi:explicitMember>
+      </xbrli:scenario>
+    </xbrli:context>
+    <xbrli:unit id="GBP"><xbrli:measure>iso4217:GBP</xbrli:measure></xbrli:unit>
+  </ix:resources>
+</ix:header>
+</head>
+<body>
+  <h1>Statement of Comprehensive Income</h1>
+  <table>
+    <tr><th></th><th>2024</th><th>2023</th></tr>
+    <tr>
+      <td>Turnover</td>
+      <td><ix:nonFraction name="core:Turnover" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0" format="ixt:numcommadot">520000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:Turnover" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0" format="ixt:numcommadot">445000000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Cost of sales</td>
+      <td><ix:nonFraction name="core:CostSales" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0" sign="-">208000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:CostSales" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0" sign="-">187000000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Gross profit</td>
+      <td><ix:nonFraction name="core:GrossProfitLoss" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0">312000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:GrossProfitLoss" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0">258000000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Operating profit</td>
+      <td><ix:nonFraction name="core:OperatingProfitLoss" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0">78000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:OperatingProfitLoss" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0">62000000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Profit before tax</td>
+      <td><ix:nonFraction name="core:ProfitLossOnOrdinaryActivitiesBeforeTax" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0">72000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:ProfitLossOnOrdinaryActivitiesBeforeTax" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0">55000000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Profit for the year</td>
+      <td><ix:nonFraction name="core:ProfitLoss" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0">55000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:ProfitLoss" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0">42000000</ix:nonFraction></td>
+    </tr>
+    <!-- Segmental turnover must NOT overwrite company total -->
+    <tr>
+      <td>Segment A turnover</td>
+      <td><ix:nonFraction name="core:Turnover" contextRef="FY2024_SegA" unitRef="GBP" decimals="0" scale="0">100</ix:nonFraction></td>
+      <td></td>
+    </tr>
+  </table>
+
+  <h1>Statement of Financial Position</h1>
+  <table>
+    <tr><th></th><th>2024</th><th>2023</th></tr>
+    <tr>
+      <td>Fixed assets</td>
+      <td><ix:nonFraction name="core:FixedAssets" contextRef="BS2024" unitRef="GBP" decimals="-3" scale="3">95000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:FixedAssets" contextRef="BS2023" unitRef="GBP" decimals="-3" scale="3">82000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Current assets</td>
+      <td><ix:nonFraction name="core:CurrentAssets" contextRef="BS2024" unitRef="GBP" decimals="-3" scale="3">180000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:CurrentAssets" contextRef="BS2023" unitRef="GBP" decimals="-3" scale="3">155000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Creditors: amounts falling due within one year</td>
+      <td><ix:nonFraction name="core:CreditorsDueWithinOneYear" contextRef="BS2024" unitRef="GBP" decimals="-3" scale="3" sign="-">95000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:CreditorsDueWithinOneYear" contextRef="BS2023" unitRef="GBP" decimals="-3" scale="3" sign="-">88000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Creditors: amounts falling due after more than one year</td>
+      <td><ix:nonFraction name="core:CreditorsDueAfterOneYear" contextRef="BS2024" unitRef="GBP" decimals="-3" scale="3" sign="-">40000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:CreditorsDueAfterOneYear" contextRef="BS2023" unitRef="GBP" decimals="-3" scale="3" sign="-">35000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Net assets</td>
+      <td><ix:nonFraction name="core:NetAssetsLiabilities" contextRef="BS2024" unitRef="GBP" decimals="-3" scale="3">140000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:NetAssetsLiabilities" contextRef="BS2023" unitRef="GBP" decimals="-3" scale="3">114000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Capital and reserves</td>
+      <td><ix:nonFraction name="core:Equity" contextRef="BS2024" unitRef="GBP" decimals="-3" scale="3">140000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:Equity" contextRef="BS2023" unitRef="GBP" decimals="-3" scale="3">114000</ix:nonFraction></td>
+    </tr>
+  </table>
+
+  <h1>Statement of Cash Flows</h1>
+  <table>
+    <tr><th></th><th>2024</th><th>2023</th></tr>
+    <tr>
+      <td>Net cash from operating activities</td>
+      <td><ix:nonFraction name="core:NetCashFlowsFromUsedInOperatingActivities" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0">68000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:NetCashFlowsFromUsedInOperatingActivities" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0">55000000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Net cash from investing activities</td>
+      <td><ix:nonFraction name="core:NetCashFlowsFromUsedInInvestingActivities" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0" sign="-">22000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:NetCashFlowsFromUsedInInvestingActivities" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0" sign="-">18000000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Net cash from financing activities</td>
+      <td><ix:nonFraction name="core:NetCashFlowsFromUsedInFinancingActivities" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0" sign="-">15000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:NetCashFlowsFromUsedInFinancingActivities" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0" sign="-">10000000</ix:nonFraction></td>
+    </tr>
+    <tr>
+      <td>Net increase in cash</td>
+      <td><ix:nonFraction name="core:IncreaseDecreaseInCashAndCashEquivalents" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0">31000000</ix:nonFraction></td>
+      <td><ix:nonFraction name="core:IncreaseDecreaseInCashAndCashEquivalents" contextRef="FY2023" unitRef="GBP" decimals="0" scale="0">27000000</ix:nonFraction></td>
+    </tr>
+  </table>
+</body>
+</html>

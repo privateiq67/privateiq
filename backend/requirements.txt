@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 requests
 feedparser
 beautifulsoup4
@@ -9,3 +9,5 @@ pymupdf
 pdfplumber
 pytesseract
 pillow
+httpx
+pytest

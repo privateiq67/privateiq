@@ -1,0 +1,21 @@
+# Secrets
+.env
+.env.local
+!**/.env.example
+
+# Python
+**/__pycache__/
+**/.venv/
+**/venv/
+**/.pytest_cache/
+backend/data/*.db
+
+# Node
+**/node_modules/
+**/.next/
+**/.vercel/
+frontend/next-env.d.ts
+
+# OS
+.DS_Store
+*.log
