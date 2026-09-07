@@ -49,7 +49,7 @@ def test_demo_profile_and_financials_shape():
     f = client.get("/api/company/08489098/financials")
     assert f.status_code == 200
     data = f.json()
-    assert data["schema_version"] == "1.0"
+    assert data["schema_version"] == "1.1"
     assert data["years"]
     y0 = data["years"][0]
     assert "income_statement" in y0

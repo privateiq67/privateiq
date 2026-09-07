@@ -15,7 +15,7 @@ CapIQ-style terminal for **UK private company financials** — Companies House f
   - `news.py` BBC / Guardian / FT / Google News RSS
   - `legacy/` Quarantined broken coordinate/OCR parser (do not use)
 
-Financials API shape: `years[]` with `income_statement` / `balance_sheet` / `cash_flow` line items `{value, provenance?}`, `parsing_status` in `ixbrl|pdf|fixture|partial`, `schema_version: "1.0"`.
+Financials API shape: `years[]` with `income_statement` / `balance_sheet` / `cash_flow` line items `{value, provenance?}`, `parsing_status` in `ixbrl|pdf|fixture|partial`, `schema_version: "1.1"`.
 
 ## Setup
 

@@ -14,13 +14,22 @@ type Tab = "all" | "income" | "balance" | "cash";
 
 const INCOME_ROWS = [
   "Revenue",
+  "Net Interest Income",
+  "Fee and Commission Income",
+  "Total Income",
   "Cost of Sales",
   "Gross Profit",
+  "Administrative Expenses",
+  "Staff Costs",
   "Operating Profit",
   "EBIT",
   "EBITDA (Est)",
+  "Finance Income",
+  "Finance Costs",
   "Profit Before Tax",
+  "Tax",
   "Net Income",
+  "Comprehensive Income",
 ];
 const BALANCE_ROWS = [
   "Current Assets",
@@ -31,6 +40,7 @@ const BALANCE_ROWS = [
   "Total Liabilities",
   "Equity",
   "Net Assets",
+  "Net Current Assets",
 ];
 const CASH_ROWS = ["Operating CF", "Investing CF", "Financing CF", "Net Change in Cash"];
 

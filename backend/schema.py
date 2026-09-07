@@ -5,23 +5,39 @@ Assumptions documented here and in README:
 - Line items may be omitted when not present; null values are dropped in API output.
 - `provenance` on each line is optional but preferred for auditability.
 - `parsing_status` is one of: ixbrl | pdf | fixture | partial | failed
+
+Optional / extended keys (beyond core CapIQ) are documented below so iXBRL can
+surface FRS 102 and bank P&L lines without inventing a second schema:
+- Income: Administrative Expenses, Staff Costs, Finance Income, Finance Costs,
+  Tax, Comprehensive Income, Net Interest Income, Fee and Commission Income,
+  Total Income
+- Balance: Net Current Assets (UK GAAP subtotal; not used as Total Assets)
 """
 
 from __future__ import annotations
 
 from typing import Any, Optional, TypedDict
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 INCOME_STATEMENT_KEYS = [
     "Revenue",
+    "Net Interest Income",
+    "Fee and Commission Income",
+    "Total Income",
     "Cost of Sales",
     "Gross Profit",
+    "Administrative Expenses",
+    "Staff Costs",
     "Operating Profit",
     "EBIT",
     "EBITDA (Est)",
+    "Finance Income",
+    "Finance Costs",
     "Profit Before Tax",
+    "Tax",
     "Net Income",
+    "Comprehensive Income",
 ]
 
 BALANCE_SHEET_KEYS = [
@@ -33,6 +49,7 @@ BALANCE_SHEET_KEYS = [
     "Total Liabilities",
     "Equity",
     "Net Assets",
+    "Net Current Assets",
 ]
 
 CASH_FLOW_KEYS = [

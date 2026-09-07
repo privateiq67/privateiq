@@ -6,6 +6,7 @@ Handles:
 - Units and scale/decimals/sign on ix:nonFraction
 - Taxonomy concept local-names (UK GAAP / FRS 102 / IFRS common tags)
 - Multi-year: groups facts by period end date so current vs comparative are distinct
+- GroupCompanyDataDimension=Consolidated (entity-level) vs segment/class breakdowns
 
 Does NOT invent numbers. Unmapped concepts are ignored (logged in debug stats).
 """
@@ -16,9 +17,7 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import date
 from typing import Any, Optional
-from xml.etree import ElementTree as ET
 
 from bs4 import BeautifulSoup
 
@@ -29,17 +28,50 @@ logger = logging.getLogger(__name__)
 # Keys are (statement, schema_key). Prefer specific FRS 102 / IFRS names.
 # ---------------------------------------------------------------------------
 CONCEPT_MAP: dict[str, tuple[str, str]] = {
-    # Income / P&L
+    # Income / P&L — revenue
     "Turnover": ("income_statement", "Revenue"),
     "TurnoverRevenue": ("income_statement", "Revenue"),
     "Revenue": ("income_statement", "Revenue"),
     "RevenueFromSaleOfGoods": ("income_statement", "Revenue"),
     "RevenueFromContractsWithCustomers": ("income_statement", "Revenue"),
+    "RevenueFromRenderingOfServices": ("income_statement", "Revenue"),
+    # Bank / fintech P&L (Monzo etc.)
+    "NetInterestIncome": ("income_statement", "Net Interest Income"),
+    "InterestReceivable": ("income_statement", "Net Interest Income"),
+    "FeeAndCommissionIncome": ("income_statement", "Fee and Commission Income"),
+    "FeesAndCommissionsIncome": ("income_statement", "Fee and Commission Income"),
+    "NetFeeAndCommissionIncome": ("income_statement", "Fee and Commission Income"),
+    "TotalOperatingIncome": ("income_statement", "Total Income"),
+    "OperatingIncome": ("income_statement", "Total Income"),
+    "TotalIncome": ("income_statement", "Total Income"),
+    # Costs / profits
     "CostSales": ("income_statement", "Cost of Sales"),
     "CostOfSales": ("income_statement", "Cost of Sales"),
     "GrossProfitLoss": ("income_statement", "Gross Profit"),
+    "AdministrativeExpenses": ("income_statement", "Administrative Expenses"),
+    "AdministrativeExpensesOperating": ("income_statement", "Administrative Expenses"),
+    "DistributionCosts": ("income_statement", "Administrative Expenses"),  # weak fallback only via conf
+    "StaffCostsEmployeeBenefitsExpense": ("income_statement", "Staff Costs"),
+    "EmployeeBenefitsExpense": ("income_statement", "Staff Costs"),
+    "WagesSalaries": ("income_statement", "Staff Costs"),
     "OperatingProfitLoss": ("income_statement", "Operating Profit"),
     "ProfitLossFromOperatingActivities": ("income_statement", "Operating Profit"),
+    "OperatingProfitLossBeforeExceptionalItems": ("income_statement", "Operating Profit"),
+    # Finance & tax
+    "OtherInterestReceivableSimilarIncomeFinanceIncome": ("income_statement", "Finance Income"),
+    "FinanceIncome": ("income_statement", "Finance Income"),
+    "InterestReceivableSimilarIncome": ("income_statement", "Finance Income"),
+    "InterestIncomeOnBankDeposits": ("income_statement", "Finance Income"),
+    "InterestPayableSimilarChargesFinanceCosts": ("income_statement", "Finance Costs"),
+    "FinanceCosts": ("income_statement", "Finance Costs"),
+    "InterestPayableSimilarCharges": ("income_statement", "Finance Costs"),
+    "OtherInterestExpense": ("income_statement", "Finance Costs"),
+    "NetFinanceIncomeCosts": ("income_statement", "Finance Income"),  # net; weak if both sides present
+    "TaxTaxCreditOnProfitOrLossOnOrdinaryActivities": ("income_statement", "Tax"),
+    "TaxExpense": ("income_statement", "Tax"),
+    "IncomeTaxExpenseContinuingOperations": ("income_statement", "Tax"),
+    "TotalCurrentTaxExpenseCredit": ("income_statement", "Tax"),
+    # Bottom line
     "ProfitLossOnOrdinaryActivitiesBeforeTax": ("income_statement", "Profit Before Tax"),
     "ProfitLossBeforeTax": ("income_statement", "Profit Before Tax"),
     "ProfitLossOnOrdinaryActivitiesBeforeTaxation": ("income_statement", "Profit Before Tax"),
@@ -47,20 +79,24 @@ CONCEPT_MAP: dict[str, tuple[str, str]] = {
     "ProfitLossForPeriod": ("income_statement", "Net Income"),
     "ProfitLossAttributableToOwnersOfParent": ("income_statement", "Net Income"),
     "ProfitLossForPeriodAttributableToOwnersOfParent": ("income_statement", "Net Income"),
-    # Balance sheet
+    "ComprehensiveIncomeExpense": ("income_statement", "Comprehensive Income"),
+    "TotalComprehensiveIncome": ("income_statement", "Comprehensive Income"),
+    "TotalComprehensiveIncomeExpense": ("income_statement", "Comprehensive Income"),
+    # Balance sheet — totals
     "CurrentAssets": ("balance_sheet", "Current Assets"),
     "FixedAssets": ("balance_sheet", "Non-Current Assets"),
     "NoncurrentAssets": ("balance_sheet", "Non-Current Assets"),
-    "PropertyPlantEquipment": ("balance_sheet", "Non-Current Assets"),  # weak; only if FixedAssets absent
+    "NonCurrentAssets": ("balance_sheet", "Non-Current Assets"),
     "TotalAssets": ("balance_sheet", "Total Assets"),
     "Assets": ("balance_sheet", "Total Assets"),
-    "Creditors": ("balance_sheet", "Total Liabilities"),  # ambiguous; low priority via confidence
+    "Creditors": ("balance_sheet", "Total Liabilities"),  # ambiguous; dim-aware override below
     "CreditorsDueWithinOneYear": ("balance_sheet", "Current Liabilities"),
     "CreditorsAmountsFallingDueWithinOneYear": ("balance_sheet", "Current Liabilities"),
     "CurrentLiabilities": ("balance_sheet", "Current Liabilities"),
     "CreditorsDueAfterOneYear": ("balance_sheet", "Non-Current Liabilities"),
     "CreditorsAmountsFallingDueAfterMoreThanOneYear": ("balance_sheet", "Non-Current Liabilities"),
     "NoncurrentLiabilities": ("balance_sheet", "Non-Current Liabilities"),
+    "NonCurrentLiabilities": ("balance_sheet", "Non-Current Liabilities"),
     "TotalLiabilities": ("balance_sheet", "Total Liabilities"),
     "Liabilities": ("balance_sheet", "Total Liabilities"),
     "Equity": ("balance_sheet", "Equity"),
@@ -69,28 +105,113 @@ CONCEPT_MAP: dict[str, tuple[str, str]] = {
     "CapitalAndReserves": ("balance_sheet", "Equity"),
     "NetAssetsLiabilities": ("balance_sheet", "Net Assets"),
     "NetAssetsLiabilitiesIncludingPensionAssetLiability": ("balance_sheet", "Net Assets"),
-    "TotalAssetsLessCurrentLiabilities": ("balance_sheet", "Net Assets"),  # UK GAAP total; treat carefully
-    # Cash flow
+    "TotalAssetsLessCurrentLiabilities": ("balance_sheet", "Net Assets"),  # UK intermediate; weak
+    "NetCurrentAssetsLiabilities": ("balance_sheet", "Net Current Assets"),
+    # Balance sheet — components (WEAK; only fill totals when missing)
+    "PropertyPlantEquipment": ("balance_sheet", "Non-Current Assets"),
+    "InvestmentsFixedAssets": ("balance_sheet", "Non-Current Assets"),
+    "InvestmentsInSubsidiaries": ("balance_sheet", "Non-Current Assets"),
+    "InvestmentsInAssociates": ("balance_sheet", "Non-Current Assets"),
+    "EquitySecuritiesHeld": ("balance_sheet", "Non-Current Assets"),
+    "Investments": ("balance_sheet", "Non-Current Assets"),
+    "IntangibleAssets": ("balance_sheet", "Non-Current Assets"),
+    "Debtors": ("balance_sheet", "Current Assets"),
+    "TradeDebtorsTradeReceivables": ("balance_sheet", "Current Assets"),
+    "CashBankOnHand": ("balance_sheet", "Current Assets"),
+    "CashCashEquivalents": ("balance_sheet", "Current Assets"),
+    "CashAndCashEquivalents": ("balance_sheet", "Current Assets"),
+    "OtherDebtors": ("balance_sheet", "Current Assets"),
+    "PrepaymentsAccruedIncome": ("balance_sheet", "Current Assets"),
+    "TradeCreditorsTradePayables": ("balance_sheet", "Current Liabilities"),
+    "OtherCreditors": ("balance_sheet", "Current Liabilities"),
+    "AccruedLiabilitiesDeferredIncome": ("balance_sheet", "Current Liabilities"),
+    "OtherProvisionsBalanceSheetSubtotal": ("balance_sheet", "Non-Current Liabilities"),
+    # Cash flow — operating
     "NetCashFlowsFromUsedInOperatingActivities": ("cash_flow", "Operating CF"),
     "CashFlowsFromUsedInOperatingActivities": ("cash_flow", "Operating CF"),
     "NetCashFromUsedInOperatingActivities": ("cash_flow", "Operating CF"),
+    "NetCashGeneratedFromOperations": ("cash_flow", "Operating CF"),
+    "NetCashGeneratedFromUsedInOperations": ("cash_flow", "Operating CF"),
+    "CashGeneratedFromOperations": ("cash_flow", "Operating CF"),
+    # Cash flow — investing / financing
     "NetCashFlowsFromUsedInInvestingActivities": ("cash_flow", "Investing CF"),
     "CashFlowsFromUsedInInvestingActivities": ("cash_flow", "Investing CF"),
+    "NetCashFromUsedInInvestingActivities": ("cash_flow", "Investing CF"),
+    "NetCashUsedInInvestingActivities": ("cash_flow", "Investing CF"),
     "NetCashFlowsFromUsedInFinancingActivities": ("cash_flow", "Financing CF"),
     "CashFlowsFromUsedInFinancingActivities": ("cash_flow", "Financing CF"),
+    "NetCashFromUsedInFinancingActivities": ("cash_flow", "Financing CF"),
+    "NetCashUsedInFinancingActivities": ("cash_flow", "Financing CF"),
     "IncreaseDecreaseInCashCashEquivalentsBeforeEffectOfExchangeRateChanges": (
         "cash_flow",
         "Net Change in Cash",
     ),
     "IncreaseDecreaseInCashAndCashEquivalents": ("cash_flow", "Net Change in Cash"),
     "NetIncreaseDecreaseInCashAndCashEquivalents": ("cash_flow", "Net Change in Cash"),
+    "IncreaseDecreaseInCashCashEquivalents": ("cash_flow", "Net Change in Cash"),
 }
 
-# Concepts that should NOT be used as primary for Total Assets / Net Assets collisions
+# Components / ambiguous tags must not override true totals (lower confidence).
 WEAK_CONCEPTS = {
-    "PropertyPlantEquipment",  # component, not total non-current
-    "Creditors",  # ambiguous
-    "TotalAssetsLessCurrentLiabilities",  # UK intermediate total, not always Net Assets
+    "PropertyPlantEquipment",
+    "InvestmentsFixedAssets",
+    "InvestmentsInSubsidiaries",
+    "InvestmentsInAssociates",
+    "EquitySecuritiesHeld",
+    "Investments",
+    "IntangibleAssets",
+    "Debtors",
+    "TradeDebtorsTradeReceivables",
+    "CashBankOnHand",
+    "CashCashEquivalents",
+    "CashAndCashEquivalents",
+    "OtherDebtors",
+    "PrepaymentsAccruedIncome",
+    "TradeCreditorsTradePayables",
+    "OtherCreditors",
+    "AccruedLiabilitiesDeferredIncome",
+    "OtherProvisionsBalanceSheetSubtotal",
+    "Creditors",
+    "TotalAssetsLessCurrentLiabilities",
+    "WagesSalaries",
+    "DistributionCosts",
+    "InterestIncomeOnBankDeposits",
+    "OtherInterestExpense",
+    "NetFinanceIncomeCosts",
+    "TotalCurrentTaxExpenseCredit",
+    "NetCurrentAssetsLiabilities",
+}
+
+# Dimension local-names that are entity-level (not a segment/class breakdown).
+_ENTITY_DIM_KEYS = {
+    "GroupCompanyDataDimension",
+}
+
+# Allowed dimension key sets for facts we still treat as statement totals/components.
+# Anything outside this set is skipped (segment, PPE class, equity class, etc.).
+_ALLOWED_DIM_KEYSETS = {
+    frozenset(),
+    frozenset({"GroupCompanyDataDimension"}),
+    frozenset({"FinancialInstrumentCurrentNon-currentDimension"}),
+    frozenset(
+        {
+            "FinancialInstrumentCurrentNon-currentDimension",
+            "MaturitiesOrExpirationPeriodsDimension",
+        }
+    ),
+    frozenset(
+        {
+            "GroupCompanyDataDimension",
+            "FinancialInstrumentCurrentNon-currentDimension",
+        }
+    ),
+    frozenset(
+        {
+            "GroupCompanyDataDimension",
+            "FinancialInstrumentCurrentNon-currentDimension",
+            "MaturitiesOrExpirationPeriodsDimension",
+        }
+    ),
 }
 
 
@@ -117,6 +238,10 @@ class ContextInfo:
     @property
     def is_dimensional(self) -> bool:
         return bool(self.dimensions)
+
+    @property
+    def dim_locals(self) -> dict[str, str]:
+        return {_local(k): _local(v) for k, v in self.dimensions.items()}
 
 
 @dataclass
@@ -221,13 +346,55 @@ def parse_contexts_from_soup(soup: BeautifulSoup) -> dict[str, ContextInfo]:
     return contexts
 
 
-def _map_concept(local_name: str) -> Optional[tuple[str, str, int]]:
+def _context_allowed(ctx: Optional[ContextInfo]) -> bool:
+    """Allow undimensional + entity-level dims; skip segment/class breakdowns."""
+    if ctx is None:
+        return True
+    keys = frozenset(ctx.dim_locals.keys())
+    return keys in _ALLOWED_DIM_KEYSETS
+
+
+def _map_concept(
+    local_name: str,
+    dimensions: Optional[dict[str, str]] = None,
+) -> Optional[tuple[str, str, int]]:
+    dim_locals = {_local(k): _local(v) for k, v in (dimensions or {}).items()}
+
+    # Creditors tagged with current/non-current instrument dimension → CL / NCL
+    if local_name == "Creditors":
+        fin = dim_locals.get("FinancialInstrumentCurrentNon-currentDimension")
+        if fin in ("CurrentFinancialInstruments", "Current"):
+            conf = 55
+            if dim_locals.get("GroupCompanyDataDimension") == "Consolidated":
+                conf += 10
+            return "balance_sheet", "Current Liabilities", conf
+        if fin in (
+            "Non-currentFinancialInstruments",
+            "NoncurrentFinancialInstruments",
+            "NonCurrentFinancialInstruments",
+        ):
+            conf = 55
+            if dim_locals.get("GroupCompanyDataDimension") == "Consolidated":
+                conf += 10
+            return "balance_sheet", "Non-Current Liabilities", conf
+
     mapped = CONCEPT_MAP.get(local_name)
     if not mapped:
         return None
-    conf = 100
-    if local_name in WEAK_CONCEPTS:
-        conf = 40
+
+    conf = 40 if local_name in WEAK_CONCEPTS else 100
+
+    # Prefer consolidated group totals over parent-company undimensional facts
+    gcd = dim_locals.get("GroupCompanyDataDimension")
+    if gcd == "Consolidated":
+        conf += 10
+    elif gcd in ("Company", "EntityAloneOrParent", "Parent"):
+        conf -= 10
+
+    # Instrument maturity dims on non-Creditors concepts stay weaker
+    if "FinancialInstrumentCurrentNon-currentDimension" in dim_locals:
+        conf = min(conf, 55)
+
     return mapped[0], mapped[1], conf
 
 
@@ -245,6 +412,7 @@ def extract_facts(content: bytes) -> tuple[list[Fact], dict[str, Any]]:
     try:
         from bs4 import XMLParsedAsHTMLWarning
         import warnings
+
         warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
         try:
             soup = BeautifulSoup(content, "lxml-xml")
@@ -269,21 +437,25 @@ def extract_facts(content: bytes) -> tuple[list[Fact], dict[str, Any]]:
         attrs = _soup_attrs(tag)
         concept = attrs.get("name") or ""
         concept_local = concept.split(":")[-1] if concept else ""
-        mapped = _map_concept(concept_local)
+
+        ctx_id = attrs.get("contextref") or ""
+        ctx = contexts.get(ctx_id)
+
+        # Skip segment / class / officer breakdowns; keep consolidated entity totals
+        if not _context_allowed(ctx):
+            if concept_local and concept_local not in stats["unmapped_concepts"]:
+                # Still count as seen but not usable for totals
+                pass
+            continue
+
+        mapped = _map_concept(concept_local, ctx.dimensions if ctx else None)
         if not mapped:
             if concept_local and concept_local not in stats["unmapped_concepts"]:
-                if len(stats["unmapped_concepts"]) < 50:
+                if len(stats["unmapped_concepts"]) < 80:
                     stats["unmapped_concepts"].append(concept_local)
             continue
 
         statement, schema_key, confidence = mapped
-        ctx_id = attrs.get("contextref") or ""
-        ctx = contexts.get(ctx_id)
-        # Skip heavily dimensional breakdowns (segment/product) for totals
-        if ctx and ctx.is_dimensional:
-            # Allow if only unused dimension types we don't care about? Prefer undimensional.
-            continue
-
         raw_text = tag.get_text(strip=True)
         base = _parse_number(raw_text)
         if base is None:
