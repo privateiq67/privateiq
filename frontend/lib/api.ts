@@ -1,6 +1,8 @@
 const API_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) ||
-  "http://localhost:8000";
+  (typeof process !== "undefined" && process.env.VERCEL
+    ? "https://private-iq-backend.onrender.com"
+    : "http://localhost:8000");;
 
 export function apiBase(): string {
   return API_URL.replace(/\/$/, "");
