@@ -1,0 +1,665 @@
+{
+  "summary": {
+    "generated_at_utc": "2026-09-08T13:54:06.183421+00:00",
+    "max_filings": 2,
+    "allow_ocr": true,
+    "ocr_budget": 29,
+    "sleep_sec": 0.5,
+    "company_set": "/workspace/privateiq/backend/evals/top50_uk_private.json",
+    "n_companies": 29,
+    "n_any_year": 29,
+    "n_income": 27,
+    "n_balance": 24,
+    "n_cash": 11,
+    "n_errors": 0,
+    "pct_any_year": 1.0,
+    "pct_income": 0.9310344827586207,
+    "pct_balance": 0.8275862068965517,
+    "pct_cash": 0.3793103448275862,
+    "pct_errors": 0.0,
+    "ocr_used": 28
+  },
+  "results": [
+    {
+      "name": "Moto Hospitality Limited",
+      "company_number": "00734299",
+      "sector": "Motorway services",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 147.63,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Virgin Media Limited",
+      "company_number": "02591237",
+      "sector": "Telecoms / cable",
+      "has_any_year": true,
+      "has_income_line": false,
+      "has_balance_line": false,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "partial"
+      ],
+      "periods": [
+        "2029",
+        "2028",
+        "2027",
+        "2026",
+        "2025"
+      ],
+      "n_years": 5,
+      "elapsed_sec": 175.12,
+      "error": null,
+      "ocr_used": false,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Hutchison 3G UK Limited",
+      "company_number": "03885486",
+      "sector": "Mobile telecoms (Three)",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024",
+        "2023"
+      ],
+      "n_years": 3,
+      "elapsed_sec": 167.97,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Keepmoat Homes Limited",
+      "company_number": "02207338",
+      "sector": "Housebuilding",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 115.02,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "P&O Ferries Limited",
+      "company_number": "00237626",
+      "sector": "Shipping / ferries",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "partial",
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2024",
+        "2023",
+        "2022",
+        "2018"
+      ],
+      "n_years": 4,
+      "elapsed_sec": 137.67,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Associated British Ports Holdings Limited",
+      "company_number": "01612178",
+      "sector": "Ports / logistics",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "partial",
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2026",
+        "2025",
+        "2024"
+      ],
+      "n_years": 3,
+      "elapsed_sec": 120.32,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "New Look Limited",
+      "company_number": "01996366",
+      "sector": "Fashion retail",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "partial",
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024",
+        "2023",
+        "2022"
+      ],
+      "n_years": 4,
+      "elapsed_sec": 97.4,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "River Island Clothing Co. Limited",
+      "company_number": "00636095",
+      "sector": "Fashion retail",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024",
+        "2023"
+      ],
+      "n_years": 3,
+      "elapsed_sec": 91.32,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Poundland Limited",
+      "company_number": "02495645",
+      "sector": "Value retail",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "partial",
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2028",
+        "2027",
+        "2025",
+        "2024",
+        "2023"
+      ],
+      "n_years": 5,
+      "elapsed_sec": 144.35,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Caffe Nero Group Holdings Ltd",
+      "company_number": "05936386",
+      "sector": "Coffee / foodservice",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 138.89,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 20
+    },
+    {
+      "name": "Octopus Energy Group Limited",
+      "company_number": "09718624",
+      "sector": "Energy supply / tech",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "partial",
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024",
+        "2023",
+        "2022"
+      ],
+      "n_years": 4,
+      "elapsed_sec": 179.72,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 11
+    },
+    {
+      "name": "GoCardless Ltd",
+      "company_number": "07495895",
+      "sector": "Payments / fintech",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "partial",
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2027",
+        "2025",
+        "2024",
+        "2023"
+      ],
+      "n_years": 4,
+      "elapsed_sec": 175.86,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 18
+    },
+    {
+      "name": "Modulr FS Limited",
+      "company_number": "09897919",
+      "sector": "Embedded finance",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2024",
+        "2023"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 85.58,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 9
+    },
+    {
+      "name": "ClearBank Limited",
+      "company_number": "09736376",
+      "sector": "Banking infrastructure",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 124.62,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 11
+    },
+    {
+      "name": "Thought Machine Group Limited",
+      "company_number": "11114277",
+      "sector": "Banking core tech",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 155.93,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 8
+    },
+    {
+      "name": "Oxa Autonomy Ltd",
+      "company_number": "09242359",
+      "sector": "Autonomous vehicles",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2024",
+        "2023"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 92.35,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 11
+    },
+    {
+      "name": "Heathrow Airport Limited",
+      "company_number": "01991017",
+      "sector": "Airports / infrastructure",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": false,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "partial",
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 45.32,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Gatwick Airport Limited",
+      "company_number": "01991018",
+      "sector": "Airports / infrastructure",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 156.86,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Laing O'Rourke plc",
+      "company_number": "04222545",
+      "sector": "Construction",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2028",
+        "2026",
+        "2025"
+      ],
+      "n_years": 3,
+      "elapsed_sec": 210.92,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Sir Robert McAlpine Limited",
+      "company_number": "00566823",
+      "sector": "Construction",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024",
+        "2023"
+      ],
+      "n_years": 3,
+      "elapsed_sec": 120.98,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Mace Limited",
+      "company_number": "02410626",
+      "sector": "Construction consultancy",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2024",
+        "2023"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 111.15,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Willmott Dixon Holdings Limited",
+      "company_number": "00198032",
+      "sector": "Construction",
+      "has_any_year": true,
+      "has_income_line": false,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 172.32,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Samworth Brothers Limited",
+      "company_number": "03116767",
+      "sector": "Food manufacturing",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "partial",
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2024",
+        "2023",
+        "2022",
+        "2021",
+        "2016"
+      ],
+      "n_years": 5,
+      "elapsed_sec": 139.69,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "2 Sisters Food Group Limited",
+      "company_number": "02826929",
+      "sector": "Food manufacturing",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": false,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 152.94,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Warburtons Limited",
+      "company_number": "00178711",
+      "sector": "Bakery / food",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 136.69,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Cosmetic Warriors Limited",
+      "company_number": "04165681",
+      "sector": "Cosmetics (Lush)",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 120.86,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 25
+    },
+    {
+      "name": "Featurespace Limited",
+      "company_number": "05640420",
+      "sector": "Fraud analytics / fintech",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": false,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2024",
+        "2023"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 107.95,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 20
+    },
+    {
+      "name": "Synthesia Limited",
+      "company_number": "10933652",
+      "sector": "Generative AI video",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": false,
+      "has_cash_line": false,
+      "parsing_statuses": [
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2024",
+        "2023"
+      ],
+      "n_years": 2,
+      "elapsed_sec": 137.05,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 8
+    },
+    {
+      "name": "Graphcore Limited",
+      "company_number": "10185006",
+      "sector": "Semiconductor / AI chips",
+      "has_any_year": true,
+      "has_income_line": true,
+      "has_balance_line": true,
+      "has_cash_line": true,
+      "parsing_statuses": [
+        "partial",
+        "pdf_ocr"
+      ],
+      "periods": [
+        "2025",
+        "2024",
+        "2023"
+      ],
+      "n_years": 3,
+      "elapsed_sec": 164.14,
+      "error": null,
+      "ocr_used": true,
+      "filings_fetched": 12
+    }
+  ]
+}
