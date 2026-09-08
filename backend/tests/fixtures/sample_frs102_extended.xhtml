@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ix="http://www.xbrl.org/2013/inlineXBRL"
+      xmlns:xbrli="http://www.xbrl.org/2003/instance"
+      xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+      xmlns:link="http://www.xbrl.org/2003/linkbase"
+      xmlns:uk-bus="http://xbrl.frc.org.uk/cd/2024-01-01/business"
+      xmlns:core="http://xbrl.frc.org.uk/fr/2024-01-01/core"
+      xmlns:iso4217="http://www.xbrl.org/2003/iso4217">
+<head><title>Sample FRS 102 Extended / Consolidated</title>
+<ix:header>
+  <ix:references>
+    <link:schemaRef xlink:type="simple" xlink:href="https://xbrl.frc.org.uk/FRS-102/2024-01-01/FRS-102-2024-01-01.xsd" xmlns:xlink="http://www.w3.org/1999/xlink"/>
+  </ix:references>
+  <ix:resources>
+    <xbrli:context id="FY2024">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">12500702</xbrli:identifier></xbrli:entity>
+      <xbrli:period>
+        <xbrli:startDate>2024-01-01</xbrli:startDate>
+        <xbrli:endDate>2024-12-31</xbrli:endDate>
+      </xbrli:period>
+    </xbrli:context>
+    <xbrli:context id="FY2024_Consol">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">12500702</xbrli:identifier></xbrli:entity>
+      <xbrli:period>
+        <xbrli:startDate>2024-01-01</xbrli:startDate>
+        <xbrli:endDate>2024-12-31</xbrli:endDate>
+      </xbrli:period>
+      <xbrli:scenario>
+        <xbrldi:explicitMember dimension="uk-bus:GroupCompanyDataDimension">uk-bus:Consolidated</xbrldi:explicitMember>
+      </xbrli:scenario>
+    </xbrli:context>
+    <xbrli:context id="BS2024">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">12500702</xbrli:identifier></xbrli:entity>
+      <xbrli:period><xbrli:instant>2024-12-31</xbrli:instant></xbrli:period>
+    </xbrli:context>
+    <xbrli:context id="BS2024_Consol">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">12500702</xbrli:identifier></xbrli:entity>
+      <xbrli:period><xbrli:instant>2024-12-31</xbrli:instant></xbrli:period>
+      <xbrli:scenario>
+        <xbrldi:explicitMember dimension="uk-bus:GroupCompanyDataDimension">uk-bus:Consolidated</xbrldi:explicitMember>
+      </xbrli:scenario>
+    </xbrli:context>
+    <xbrli:context id="BS2024_CL">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">12500702</xbrli:identifier></xbrli:entity>
+      <xbrli:period><xbrli:instant>2024-12-31</xbrli:instant></xbrli:period>
+      <xbrli:scenario>
+        <xbrldi:explicitMember dimension="core:FinancialInstrumentCurrentNon-currentDimension">core:CurrentFinancialInstruments</xbrldi:explicitMember>
+      </xbrli:scenario>
+    </xbrli:context>
+    <xbrli:context id="FY2024_Seg">
+      <xbrli:entity><xbrli:identifier scheme="http://www.companieshouse.gov.uk/">12500702</xbrli:identifier></xbrli:entity>
+      <xbrli:period>
+        <xbrli:startDate>2024-01-01</xbrli:startDate>
+        <xbrli:endDate>2024-12-31</xbrli:endDate>
+      </xbrli:period>
+      <xbrli:scenario>
+        <xbrldi:explicitMember dimension="core:SegmentsDimension">core:SegmentA</xbrldi:explicitMember>
+      </xbrli:scenario>
+    </xbrli:context>
+    <xbrli:unit id="GBP"><xbrli:measure>iso4217:GBP</xbrli:measure></xbrli:unit>
+  </ix:resources>
+</ix:header>
+</head>
+<body>
+  <!-- Parent-only profit (should lose to consolidated) -->
+  <ix:nonFraction name="core:ProfitLoss" contextRef="FY2024" unitRef="GBP" decimals="0" scale="0">2400000</ix:nonFraction>
+  <!-- Consolidated P&amp;L -->
+  <ix:nonFraction name="core:CostSales" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0">6100000</ix:nonFraction>
+  <ix:nonFraction name="core:AdministrativeExpenses" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0">57000000</ix:nonFraction>
+  <ix:nonFraction name="core:OtherInterestReceivableSimilarIncomeFinanceIncome" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0">1800000</ix:nonFraction>
+  <ix:nonFraction name="core:InterestPayableSimilarChargesFinanceCosts" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0">320000</ix:nonFraction>
+  <ix:nonFraction name="core:TaxTaxCreditOnProfitOrLossOnOrdinaryActivities" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0" sign="-">1450000</ix:nonFraction>
+  <ix:nonFraction name="core:ProfitLoss" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0" sign="-">37100000</ix:nonFraction>
+  <ix:nonFraction name="core:ComprehensiveIncomeExpense" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0" sign="-">37200000</ix:nonFraction>
+  <ix:nonFraction name="core:StaffCostsEmployeeBenefitsExpense" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0">40000000</ix:nonFraction>
+  <ix:nonFraction name="core:NetInterestIncome" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0">9000000</ix:nonFraction>
+  <ix:nonFraction name="core:TotalOperatingIncome" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0">12000000</ix:nonFraction>
+  <!-- Segment admin must be ignored -->
+  <ix:nonFraction name="core:AdministrativeExpenses" contextRef="FY2024_Seg" unitRef="GBP" decimals="0" scale="0">1</ix:nonFraction>
+
+  <!-- Parent investments (weak NCA) vs consolidated PPE (weak) — no FixedAssets total -->
+  <ix:nonFraction name="core:InvestmentsFixedAssets" contextRef="BS2024" unitRef="GBP" decimals="0" scale="0">230000000</ix:nonFraction>
+  <ix:nonFraction name="core:InvestmentsFixedAssets" contextRef="BS2024_Consol" unitRef="GBP" decimals="0" scale="0">386000</ix:nonFraction>
+  <ix:nonFraction name="core:CashBankOnHand" contextRef="BS2024_Consol" unitRef="GBP" decimals="0" scale="0">46400000</ix:nonFraction>
+  <ix:nonFraction name="core:Debtors" contextRef="BS2024_Consol" unitRef="GBP" decimals="0" scale="0">8000000</ix:nonFraction>
+  <ix:nonFraction name="core:TradeDebtorsTradeReceivables" contextRef="BS2024_Consol" unitRef="GBP" decimals="0" scale="0">3000000</ix:nonFraction>
+  <!-- True CurrentAssets total must beat CashBankOnHand component -->
+  <ix:nonFraction name="core:CurrentAssets" contextRef="BS2024_Consol" unitRef="GBP" decimals="0" scale="0">55000000</ix:nonFraction>
+  <ix:nonFraction name="core:NetAssetsLiabilities" contextRef="BS2024_Consol" unitRef="GBP" decimals="0" scale="0">42500000</ix:nonFraction>
+  <ix:nonFraction name="core:Equity" contextRef="BS2024_Consol" unitRef="GBP" decimals="0" scale="0">42500000</ix:nonFraction>
+  <ix:nonFraction name="core:Creditors" contextRef="BS2024_CL" unitRef="GBP" decimals="0" scale="0">6750000</ix:nonFraction>
+
+  <ix:nonFraction name="core:NetCashGeneratedFromOperations" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0">39300000</ix:nonFraction>
+  <ix:nonFraction name="core:NetCashFlowsFromUsedInInvestingActivities" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0" sign="-">5000000</ix:nonFraction>
+  <ix:nonFraction name="core:NetCashFlowsFromUsedInFinancingActivities" contextRef="FY2024_Consol" unitRef="GBP" decimals="0" scale="0">10000000</ix:nonFraction>
+</body>
+</html>
