@@ -1,19 +1,23 @@
 {
   "summary": {
-    "generated_at_utc": "2026-09-08T16:17:27.076959+00:00",
-    "n_companies": 60,
-    "n_any_year": 60,
-    "n_income": 56,
-    "n_balance": 53,
-    "n_cash": 27,
-    "n_errors": 0,
-    "pct_any_year": 1.0,
-    "pct_income": 0.9333333333333333,
-    "pct_balance": 0.8833333333333333,
-    "pct_cash": 0.45,
-    "pct_errors": 0.0,
-    "note": "Improvement-only merge of top60_combined + cf_gap_retry (max_filings=1 regressions ignored)",
-    "baseline_pct_cash": 0.36666666666666664
+    "generated_at_utc": "2026-09-08T16:13:57.982630+00:00",
+    "max_filings": 1,
+    "allow_ocr": true,
+    "ocr_budget": 45,
+    "sleep_sec": 0.35,
+    "company_set": "/workspace/privateiq/backend/evals/top50_uk_private.json",
+    "n_companies": 39,
+    "n_any_year": 38,
+    "n_income": 33,
+    "n_balance": 30,
+    "n_cash": 6,
+    "n_errors": 1,
+    "pct_any_year": 0.9743589743589743,
+    "pct_income": 0.8461538461538461,
+    "pct_balance": 0.7692307692307693,
+    "pct_cash": 0.15384615384615385,
+    "pct_errors": 0.02564102564102564,
+    "ocr_used": 34
   },
   "results": [
     {
@@ -32,7 +36,7 @@
         "2024"
       ],
       "n_years": 2,
-      "elapsed_sec": 1.97,
+      "elapsed_sec": 149.36,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 14
@@ -56,31 +60,10 @@
         "2022"
       ],
       "n_years": 5,
-      "elapsed_sec": 1.99,
+      "elapsed_sec": 144.41,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 12
-    },
-    {
-      "name": "TrueLayer Group Holdings Limited",
-      "company_number": "12500702",
-      "sector": "Open banking / fintech",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "ixbrl"
-      ],
-      "periods": [
-        "2024",
-        "2023"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 1.91,
-      "error": null,
-      "ocr_used": false,
-      "filings_fetched": 6
     },
     {
       "name": "TrueLayer Limited",
@@ -98,31 +81,10 @@
         "2023"
       ],
       "n_years": 2,
-      "elapsed_sec": 1.83,
+      "elapsed_sec": 4.0,
       "error": null,
       "ocr_used": false,
       "filings_fetched": 11
-    },
-    {
-      "name": "Fenix International Limited",
-      "company_number": "10354575",
-      "sector": "Digital platforms (OnlyFans)",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2024",
-        "2023"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 1.97,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 10
     },
     {
       "name": "Nscale Global Holdings Limited",
@@ -133,36 +95,19 @@
       "has_balance_line": true,
       "has_cash_line": false,
       "parsing_statuses": [
+        "partial",
         "pdf_ocr"
       ],
       "periods": [
-        "2024"
+        "2024",
+        "2023",
+        "2022"
       ],
-      "n_years": 1,
-      "elapsed_sec": 4.04,
+      "n_years": 3,
+      "elapsed_sec": 166.3,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 2
-    },
-    {
-      "name": "Wayve Technologies Ltd",
-      "company_number": "10924127",
-      "sector": "Autonomous vehicles / AI",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2024"
-      ],
-      "n_years": 1,
-      "elapsed_sec": 4.05,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 8
     },
     {
       "name": "Bet365 Group Limited",
@@ -177,31 +122,11 @@
       ],
       "periods": [
         "2025",
-        "2024"
+        "2024",
+        "2023"
       ],
-      "n_years": 2,
-      "elapsed_sec": 2.11,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "Wates Group Limited",
-      "company_number": "01824828",
-      "sector": "Construction / property",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2025",
-        "2024"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 2.06,
+      "n_years": 3,
+      "elapsed_sec": 151.68,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -225,70 +150,7 @@
         "2018"
       ],
       "n_years": 4,
-      "elapsed_sec": 1.96,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "Specsavers Optical Superstores Limited",
-      "company_number": "01721624",
-      "sector": "Optical retail",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2026",
-        "2025"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 2.01,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "J.C. Bamford Excavators Limited",
-      "company_number": "00561597",
-      "sector": "Heavy machinery / manufacturing",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2024",
-        "2023"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 1.94,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "J.C.B. Service",
-      "company_number": "00564955",
-      "sector": "Heavy machinery / manufacturing",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2024",
-        "2023"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 141.47,
+      "elapsed_sec": 154.3,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -312,28 +174,7 @@
         "2024"
       ],
       "n_years": 4,
-      "elapsed_sec": 182.84,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "Arnold Clark Automobiles Limited",
-      "company_number": "SC036386",
-      "sector": "Automotive retail",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2025",
-        "2024"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 61.06,
+      "elapsed_sec": 201.91,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -343,20 +184,18 @@
       "company_number": "01107406",
       "sector": "Grocery retail",
       "has_any_year": true,
-      "has_income_line": true,
+      "has_income_line": false,
       "has_balance_line": true,
       "has_cash_line": false,
       "parsing_statuses": [
-        "partial",
         "pdf_ocr"
       ],
       "periods": [
         "2025",
-        "2024",
-        "2023"
+        "2024"
       ],
-      "n_years": 3,
-      "elapsed_sec": 294.09,
+      "n_years": 2,
+      "elapsed_sec": 156.81,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -377,34 +216,10 @@
         "2023"
       ],
       "n_years": 2,
-      "elapsed_sec": 103.94,
+      "elapsed_sec": 109.83,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
-    },
-    {
-      "name": "Weybourne Limited",
-      "company_number": "10260912",
-      "sector": "Family investment / James Dyson",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "partial",
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2024",
-        "2023",
-        "2022",
-        "2021"
-      ],
-      "n_years": 4,
-      "elapsed_sec": 119.77,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 9
     },
     {
       "name": "INEOS Industries Limited",
@@ -419,12 +234,13 @@
         "pdf_ocr"
       ],
       "periods": [
+        "2027",
         "2026",
         "2024",
         "2023"
       ],
-      "n_years": 3,
-      "elapsed_sec": 173.11,
+      "n_years": 4,
+      "elapsed_sec": 200.76,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 17
@@ -445,7 +261,7 @@
         "2024"
       ],
       "n_years": 2,
-      "elapsed_sec": 128.62,
+      "elapsed_sec": 144.05,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -466,7 +282,7 @@
         "2024"
       ],
       "n_years": 2,
-      "elapsed_sec": 111.18,
+      "elapsed_sec": 124.79,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -475,20 +291,15 @@
       "name": "The Very Group Limited",
       "company_number": "04730752",
       "sector": "Online retail / consumer credit",
-      "has_any_year": true,
+      "has_any_year": false,
       "has_income_line": false,
       "has_balance_line": false,
       "has_cash_line": false,
-      "parsing_statuses": [
-        "partial"
-      ],
-      "periods": [
-        "2024",
-        "2023"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 122.92,
-      "error": null,
+      "parsing_statuses": [],
+      "periods": [],
+      "n_years": 0,
+      "elapsed_sec": 88.48,
+      "error": "no_years_parsed",
       "ocr_used": false,
       "filings_fetched": 25
     },
@@ -507,37 +318,15 @@
       "periods": [
         "2026",
         "2025",
-        "2023",
-        "2022"
-      ],
-      "n_years": 4,
-      "elapsed_sec": 141.83,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "BrewDog plc",
-      "company_number": "SC311560",
-      "sector": "Brewing / consumer",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "ixbrl",
-        "pdf_ocr"
-      ],
-      "periods": [
         "2024",
         "2023",
         "2022"
       ],
-      "n_years": 3,
-      "elapsed_sec": 136.05,
+      "n_years": 5,
+      "elapsed_sec": 154.87,
       "error": null,
       "ocr_used": true,
-      "filings_fetched": 20
+      "filings_fetched": 25
     },
     {
       "name": "Starling Bank Limited",
@@ -557,7 +346,7 @@
         "2023"
       ],
       "n_years": 4,
-      "elapsed_sec": 112.25,
+      "elapsed_sec": 71.01,
       "error": null,
       "ocr_used": false,
       "filings_fetched": 13
@@ -578,7 +367,7 @@
         "2024"
       ],
       "n_years": 2,
-      "elapsed_sec": 182.65,
+      "elapsed_sec": 202.55,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 12
@@ -603,31 +392,10 @@
         "2023"
       ],
       "n_years": 5,
-      "elapsed_sec": 139.04,
+      "elapsed_sec": 163.61,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 14
-    },
-    {
-      "name": "EG Group Limited",
-      "company_number": "09826582",
-      "sector": "Petrol retail / convenience",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2024",
-        "2023"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 79.79,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 10
     },
     {
       "name": "Asda Stores Limited",
@@ -638,14 +406,16 @@
       "has_balance_line": false,
       "has_cash_line": false,
       "parsing_statuses": [
+        "partial",
         "pdf_ocr"
       ],
       "periods": [
+        "2029",
         "2024",
         "2023"
       ],
-      "n_years": 2,
-      "elapsed_sec": 128.76,
+      "n_years": 3,
+      "elapsed_sec": 141.87,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -666,7 +436,7 @@
         "2024"
       ],
       "n_years": 2,
-      "elapsed_sec": 147.63,
+      "elapsed_sec": 149.39,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -689,7 +459,7 @@
         "2022"
       ],
       "n_years": 3,
-      "elapsed_sec": 175.12,
+      "elapsed_sec": 183.24,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -711,7 +481,7 @@
         "2023"
       ],
       "n_years": 3,
-      "elapsed_sec": 167.97,
+      "elapsed_sec": 187.58,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -732,7 +502,7 @@
         "2024"
       ],
       "n_years": 2,
-      "elapsed_sec": 115.02,
+      "elapsed_sec": 119.82,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -750,10 +520,11 @@
       ],
       "periods": [
         "2025",
-        "2024"
+        "2024",
+        "2023"
       ],
-      "n_years": 2,
-      "elapsed_sec": 2.88,
+      "n_years": 3,
+      "elapsed_sec": 3.99,
       "error": null,
       "ocr_used": false,
       "filings_fetched": 25
@@ -767,15 +538,18 @@
       "has_balance_line": true,
       "has_cash_line": false,
       "parsing_statuses": [
-        "ixbrl"
+        "partial",
+        "pdf_ocr"
       ],
       "periods": [
-        "2024"
+        "2025",
+        "2024",
+        "2023"
       ],
-      "n_years": 1,
-      "elapsed_sec": 4.43,
+      "n_years": 3,
+      "elapsed_sec": 133.87,
       "error": null,
-      "ocr_used": false,
+      "ocr_used": true,
       "filings_fetched": 25
     },
     {
@@ -787,40 +561,14 @@
       "has_balance_line": true,
       "has_cash_line": false,
       "parsing_statuses": [
-        "partial",
         "pdf_ocr"
       ],
       "periods": [
         "2024",
-        "2023",
-        "2022",
-        "2018"
+        "2023"
       ],
-      "n_years": 4,
-      "elapsed_sec": 137.67,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "Associated British Ports Holdings Limited",
-      "company_number": "01612178",
-      "sector": "Ports / logistics",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "partial",
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2026",
-        "2025",
-        "2024"
-      ],
-      "n_years": 3,
-      "elapsed_sec": 120.32,
+      "n_years": 2,
+      "elapsed_sec": 153.51,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -844,7 +592,7 @@
         "2022"
       ],
       "n_years": 4,
-      "elapsed_sec": 97.4,
+      "elapsed_sec": 106.41,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -866,7 +614,7 @@
         "2023"
       ],
       "n_years": 3,
-      "elapsed_sec": 91.32,
+      "elapsed_sec": 95.29,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -891,79 +639,10 @@
         "2023"
       ],
       "n_years": 5,
-      "elapsed_sec": 144.35,
+      "elapsed_sec": 150.3,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
-    },
-    {
-      "name": "Caffe Nero Group Holdings Ltd",
-      "company_number": "05936386",
-      "sector": "Coffee / foodservice",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2025",
-        "2024"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 138.89,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 20
-    },
-    {
-      "name": "Octopus Energy Group Limited",
-      "company_number": "09718624",
-      "sector": "Energy supply / tech",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "partial",
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2025",
-        "2024",
-        "2023",
-        "2022"
-      ],
-      "n_years": 4,
-      "elapsed_sec": 179.72,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 11
-    },
-    {
-      "name": "GoCardless Ltd",
-      "company_number": "07495895",
-      "sector": "Payments / fintech",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "partial",
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2027",
-        "2025",
-        "2024",
-        "2023"
-      ],
-      "n_years": 4,
-      "elapsed_sec": 175.86,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 18
     },
     {
       "name": "Modulr FS Limited",
@@ -981,31 +660,10 @@
         "2023"
       ],
       "n_years": 2,
-      "elapsed_sec": 85.58,
+      "elapsed_sec": 87.23,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 9
-    },
-    {
-      "name": "ClearBank Limited",
-      "company_number": "09736376",
-      "sector": "Banking infrastructure",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2025",
-        "2024"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 124.62,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 11
     },
     {
       "name": "Thought Machine Group Limited",
@@ -1023,31 +681,10 @@
         "2024"
       ],
       "n_years": 2,
-      "elapsed_sec": 155.93,
+      "elapsed_sec": 162.72,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 8
-    },
-    {
-      "name": "Oxa Autonomy Ltd",
-      "company_number": "09242359",
-      "sector": "Autonomous vehicles",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2024",
-        "2023"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 92.35,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 11
     },
     {
       "name": "Heathrow Airport Limited",
@@ -1076,18 +713,17 @@
       "company_number": "01991018",
       "sector": "Airports / infrastructure",
       "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
+      "has_income_line": false,
+      "has_balance_line": false,
       "has_cash_line": false,
       "parsing_statuses": [
         "pdf_ocr"
       ],
       "periods": [
-        "2025",
         "2024"
       ],
-      "n_years": 2,
-      "elapsed_sec": 156.86,
+      "n_years": 1,
+      "elapsed_sec": 174.58,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -1109,50 +745,7 @@
         "2025"
       ],
       "n_years": 3,
-      "elapsed_sec": 210.92,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "Sir Robert McAlpine Limited",
-      "company_number": "00566823",
-      "sector": "Construction",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2025",
-        "2024",
-        "2023"
-      ],
-      "n_years": 3,
-      "elapsed_sec": 120.98,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "Mace Limited",
-      "company_number": "02410626",
-      "sector": "Construction consultancy",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2024",
-        "2023"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 111.15,
+      "elapsed_sec": 231.35,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -1163,19 +756,18 @@
       "sector": "Construction",
       "has_any_year": true,
       "has_income_line": false,
-      "has_balance_line": true,
+      "has_balance_line": false,
       "has_cash_line": false,
       "parsing_statuses": [
-        "pdf_ocr"
+        "partial"
       ],
       "periods": [
-        "2025",
-        "2024"
+        "2025"
       ],
-      "n_years": 2,
-      "elapsed_sec": 172.32,
+      "n_years": 1,
+      "elapsed_sec": 191.4,
       "error": null,
-      "ocr_used": true,
+      "ocr_used": false,
       "filings_fetched": 25
     },
     {
@@ -1198,7 +790,7 @@
         "2016"
       ],
       "n_years": 5,
-      "elapsed_sec": 139.69,
+      "elapsed_sec": 133.04,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -1219,7 +811,7 @@
         "2024"
       ],
       "n_years": 2,
-      "elapsed_sec": 152.94,
+      "elapsed_sec": 157.38,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -1240,28 +832,7 @@
         "2024"
       ],
       "n_years": 2,
-      "elapsed_sec": 136.69,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 25
-    },
-    {
-      "name": "Cosmetic Warriors Limited",
-      "company_number": "04165681",
-      "sector": "Cosmetics (Lush)",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2025",
-        "2024"
-      ],
-      "n_years": 2,
-      "elapsed_sec": 120.86,
+      "elapsed_sec": 149.35,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 25
@@ -1282,7 +853,7 @@
         "2023"
       ],
       "n_years": 2,
-      "elapsed_sec": 107.95,
+      "elapsed_sec": 118.82,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 20
@@ -1303,33 +874,10 @@
         "2023"
       ],
       "n_years": 2,
-      "elapsed_sec": 137.05,
+      "elapsed_sec": 149.75,
       "error": null,
       "ocr_used": true,
       "filings_fetched": 8
-    },
-    {
-      "name": "Graphcore Limited",
-      "company_number": "10185006",
-      "sector": "Semiconductor / AI chips",
-      "has_any_year": true,
-      "has_income_line": true,
-      "has_balance_line": true,
-      "has_cash_line": true,
-      "parsing_statuses": [
-        "partial",
-        "pdf_ocr"
-      ],
-      "periods": [
-        "2025",
-        "2024",
-        "2023"
-      ],
-      "n_years": 3,
-      "elapsed_sec": 164.14,
-      "error": null,
-      "ocr_used": true,
-      "filings_fetched": 12
     }
   ]
 }

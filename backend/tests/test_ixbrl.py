@@ -135,3 +135,17 @@ def test_weak_components_do_not_override_totals():
     ca = y["balance_sheet"]["Current Assets"]
     assert ca["value"] == 55_000_000
     assert ca["provenance"]["confidence"] >= 100
+
+
+def test_concept_map_includes_common_uk_cf_tags():
+    from ixbrl import CONCEPT_MAP
+
+    for concept, key in (
+        ("NetCashFlowsFromOperatingActivities", "Operating CF"),
+        ("NetCashUsedInOperatingActivities", "Operating CF"),
+        ("NetCashInflowFromOperatingActivities", "Operating CF"),
+        ("NetCashFromInvestingActivities", "Investing CF"),
+        ("NetCashFromFinancingActivities", "Financing CF"),
+        ("NetIncreaseInCashAndCashEquivalents", "Net Change in Cash"),
+    ):
+        assert CONCEPT_MAP[concept] == ("cash_flow", key)

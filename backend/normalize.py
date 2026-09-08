@@ -29,6 +29,8 @@ SYNONYMS: dict[str, tuple[str, str]] = {
     "total turnover": ("income_statement", "Revenue"),
     "sales": ("income_statement", "Revenue"),
     "net interest income": ("income_statement", "Net Interest Income"),
+    "net interest income after impairment losses": ("income_statement", "Net Interest Income"),
+    "net interest income after provisions": ("income_statement", "Net Interest Income"),
     "interest income": ("income_statement", "Net Interest Income"),
     "interest receivable and similar income": ("income_statement", "Finance Income"),
     "interest expense": ("income_statement", "Finance Costs"),
@@ -118,15 +120,33 @@ SYNONYMS: dict[str, tuple[str, str]] = {
     "net cash from operating activities": ("cash_flow", "Operating CF"),
     "net cash generated from operating activities": ("cash_flow", "Operating CF"),
     "net cash generated from operations": ("cash_flow", "Operating CF"),
+    "net cash generated/(used) from operating activities": ("cash_flow", "Operating CF"),
+    "net cash generated/(used) in operating activities": ("cash_flow", "Operating CF"),
+    "net cash (used)/generated from operating activities": ("cash_flow", "Operating CF"),
+    "net cash (used)/generated in operating activities": ("cash_flow", "Operating CF"),
+    "net cash (used in)/generated from operating activities": ("cash_flow", "Operating CF"),
+    "net cash used in operating activities": ("cash_flow", "Operating CF"),
+    "net cash used/(generated) from operating activities": ("cash_flow", "Operating CF"),
+    "net cash from/(used in) operating activities": ("cash_flow", "Operating CF"),
+    "net cash inflow/(outflow) from operating activities": ("cash_flow", "Operating CF"),
     "cash flows from operating activities": ("cash_flow", "Operating CF"),
     "net cash from investing activities": ("cash_flow", "Investing CF"),
     "cash flows from investing activities": ("cash_flow", "Investing CF"),
+    "net cash generated/(used) from investing activities": ("cash_flow", "Investing CF"),
+    "net cash (used)/generated from investing activities": ("cash_flow", "Investing CF"),
+    "net cash from/(used in) investing activities": ("cash_flow", "Investing CF"),
     "net cash from financing activities": ("cash_flow", "Financing CF"),
     "cash flows from financing activities": ("cash_flow", "Financing CF"),
+    "net cash generated/(used) from financing activities": ("cash_flow", "Financing CF"),
+    "net cash (used)/generated from financing activities": ("cash_flow", "Financing CF"),
+    "net cash from/(used in) financing activities": ("cash_flow", "Financing CF"),
     "net increase/(decrease) in cash and cash equivalents": ("cash_flow", "Net Change in Cash"),
+    "net increase/(decrease) in cash and cash equivalents before exchange": ("cash_flow", "Net Change in Cash"),
     "net increase in cash and cash equivalents": ("cash_flow", "Net Change in Cash"),
     "net decrease in cash and cash equivalents": ("cash_flow", "Net Change in Cash"),
     "net increase/(decrease) in cash": ("cash_flow", "Net Change in Cash"),
+    "increase/(decrease) in cash and cash equivalents": ("cash_flow", "Net Change in Cash"),
+    "increase/(decrease) in cash": ("cash_flow", "Net Change in Cash"),
     # Construction / UK group common labels
     "group turnover": ("income_statement", "Revenue"),
     "group revenue": ("income_statement", "Revenue"),
@@ -142,6 +162,10 @@ SYNONYMS: dict[str, tuple[str, str]] = {
     "profit before taxation from continuing operations": ("income_statement", "Profit Before Tax"),
     "total equity attributable to owners": ("balance_sheet", "Equity"),
     "equity attributable to owners of the parent": ("balance_sheet", "Equity"),
+    "equity attributable to the owners of the parent": ("balance_sheet", "Equity"),
+    "equity attributable to the owners of the parent company": ("balance_sheet", "Equity"),
+    "equity attributable to owners of the parent company": ("balance_sheet", "Equity"),
+    "total equity attributable to the owners of the parent": ("balance_sheet", "Equity"),
     "equity shareholders funds": ("balance_sheet", "Equity"),
     "net cash inflow from operating activities": ("cash_flow", "Operating CF"),
     "net cash outflow from operating activities": ("cash_flow", "Operating CF"),
@@ -239,6 +263,12 @@ _OCR_LABEL_FIXES = (
     (r"\bnet assels\b", "net assets"),
     (r"\bsharehoiders\b", "shareholders"),
     (r"\bshareh0lders\b", "shareholders"),
+    (r"\bcash\s*fiows?\b", "cash flows"),  # l→i
+    (r"\bcashfiows?\b", "cash flows"),
+    (r"\boperatlng activities\b", "operating activities"),
+    (r"\binvestlng activities\b", "investing activities"),
+    (r"\bfinancIng activities\b", "financing activities"),
+    (r"\bfinanc1ng activities\b", "financing activities"),
 )
 
 
@@ -263,6 +293,31 @@ def _looks_like_primary_line(key: str) -> bool:
     return True
 
 
+
+def _match_net_cash_flow_label(label: str) -> Optional[tuple[str, str]]:
+    """Map noisy net cash-flow totals; ignore subsection headers without 'net'."""
+    s = label or ""
+    if "cash" not in s:
+        return None
+    # Net change in cash
+    if re.search(r"\b(?:net\s+)?increase\s*/\s*\(?\s*decrease\s*\)?\s+in\s+cash", s) or re.search(
+        r"\bnet\s+(?:increase|decrease)\s+in\s+cash", s
+    ):
+        if "equivalent" in s or s.endswith("cash") or "in cash" in s:
+            return "cash_flow", "Net Change in Cash"
+    # Require net + operating/investing/financing (avoid mapping bare section headers
+    # that already have exact synonyms; this catches parenthesis OCR variants).
+    if not re.search(r"\bnet\s+cash\b", s):
+        return None
+    if re.search(r"\boperat", s):
+        return "cash_flow", "Operating CF"
+    if re.search(r"\binvest", s):
+        return "cash_flow", "Investing CF"
+    if re.search(r"\bfinanc", s):
+        return "cash_flow", "Financing CF"
+    return None
+
+
 def resolve_label(label: str) -> Optional[tuple[str, str, int]]:
     """Return (statement, schema_key, confidence) or None."""
     key = _norm_label(label)
@@ -282,6 +337,13 @@ def resolve_label(label: str) -> Optional[tuple[str, str, int]]:
             return "balance_sheet", "Current Liabilities", CONFIDENCE_LABEL_FUZZY
         if "creditors" in candidate and ("after" in candidate or "more than one" in candidate):
             return "balance_sheet", "Non-Current Liabilities", CONFIDENCE_LABEL_FUZZY
+    # Cash-flow net lines: tolerate (used)/generated / from/in OCR variants
+    for candidate in (key, folded):
+        cf_hit = _match_net_cash_flow_label(candidate)
+        if cf_hit:
+            return cf_hit[0], cf_hit[1], CONFIDENCE_LABEL_FUZZY
+        if "equity attributable" in candidate and "owner" in candidate:
+            return "balance_sheet", "Equity", CONFIDENCE_LABEL_FUZZY
     # Reject note-line / KPI / charge descriptions that merely contain a synonym
     if re.search(
         r"\b(depreciation|amortisation|amortization|impairment|lease charges?|"
@@ -535,6 +597,14 @@ def derive_and_validate(income: dict, balance: dict, cash: dict) -> list[str]:
         set_derived(balance, "Net Assets", eq, "Net Assets aliased from Equity")
     if eq is None and na is not None:
         set_derived(balance, "Equity", na, "Equity aliased from Net Assets")
+
+    # Holdings / banks sometimes tag Assets + Liabilities but omit Equity line.
+    ta2 = val(balance, "Total Assets")
+    tl2 = val(balance, "Total Liabilities")
+    if val(balance, "Equity") is None and ta2 is not None and tl2 is not None:
+        set_derived(balance, "Equity", ta2 - abs(tl2), "Total Assets - |Total Liabilities|")
+    if val(balance, "Net Assets") is None and ta2 is not None and tl2 is not None:
+        set_derived(balance, "Net Assets", ta2 - abs(tl2), "Total Assets - |Total Liabilities|")
 
     ocf, icf, fcf = val(cash, "Operating CF"), val(cash, "Investing CF"), val(cash, "Financing CF")
     if val(cash, "Net Change in Cash") is None and None not in (ocf, icf, fcf):

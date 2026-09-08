@@ -158,3 +158,57 @@ def test_net_current_assets_not_current_assets():
     assert resolve_label("Net current assets") is None
     assert resolve_label("Group statutory turnover")[1] == "Revenue"
     assert resolve_label("Group operating profit/(loss) | 4 25.2)")[1] == "Operating Profit"
+
+
+def test_cash_flow_net_used_generated_synonyms():
+    assert resolve_label("Net cash (used)/generated from operating activities")[1] == "Operating CF"
+    assert resolve_label("Net cash used in operating activities")[1] == "Operating CF"
+    assert resolve_label("Net cash from/(used in) investing activities")[1] == "Investing CF"
+    assert resolve_label("Net cash (used)/generated from financing activities")[1] == "Financing CF"
+
+
+def test_equity_attributable_with_the_owners():
+    assert resolve_label("Equity attributable to the owners of the parent company")[1] == "Equity"
+    assert resolve_label("Equity attributable to the owners of the parent")[1] == "Equity"
+
+
+def test_derive_equity_from_assets_minus_liabilities():
+    year = apply_labelled_items(
+        [
+            {"label": "Total assets", "value": 285_285_000.0},
+            {"label": "Total liabilities", "value": 317_035_000.0},
+        ],
+        period="2024",
+        parsing_status="pdf_ocr",
+    )
+    assert year["balance_sheet"]["Equity"]["value"] == 285_285_000.0 - 317_035_000.0
+    assert year["balance_sheet"]["Net Assets"]["value"] == 285_285_000.0 - 317_035_000.0
+
+
+def test_derive_total_assets_from_ca_plus_nca():
+    year = apply_labelled_items(
+        [
+            {"label": "Current assets", "value": 100.0},
+            {"label": "Fixed assets", "value": 40.0},
+        ],
+        period="2024",
+        parsing_status="pdf",
+    )
+    assert year["balance_sheet"]["Total Assets"]["value"] == 140.0
+
+
+def test_operating_cf_from_labelled_featurespace_style():
+    year = apply_labelled_items(
+        [
+            {"label": "Net cash (used)/generated from operating activities", "value": -16_236_348.0},
+            {"label": "Net cash from investing activities", "value": 521_761.0},
+            {"label": "Net cash from financing activities", "value": 20_028_314.0},
+            {"label": "Net increase in cash and cash equivalents", "value": 313_727.0},
+        ],
+        period="2024",
+        parsing_status="pdf_ocr",
+    )
+    assert year["cash_flow"]["Operating CF"]["value"] == -16_236_348.0
+    assert year["cash_flow"]["Investing CF"]["value"] == 521_761.0
+    assert year["cash_flow"]["Financing CF"]["value"] == 20_028_314.0
+    assert year["cash_flow"]["Net Change in Cash"]["value"] == 313_727.0

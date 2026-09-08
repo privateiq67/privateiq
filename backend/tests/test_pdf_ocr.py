@@ -457,9 +457,34 @@ def test_prioritize_ocr_candidates_prefers_contents_and_caps():
         hits, 154, contents_hits=contents, neighbour=2, max_pages=12
     )
     assert len(out) <= 12
-    # Contents neighbourhood should appear before early front-matter chatter
-    assert out[0] in {84, 85, 86, 87, 88, 89}
+    # Probe/section hits (±1) are reserved so real statement pages are not
+    # starved by noisy contents guesses; mid/back hits still included.
     assert 86 in out
+    assert 120 in out or 119 in out or 121 in out
+
+
+def test_prioritize_reserves_section_hits_over_noisy_contents():
+    """Featurespace-style: IS+CF section hits must keep the BS page between them."""
+    hits = [14, 16, 19] + list(range(20, 35))
+    contents = list(range(0, 5)) + list(range(20, 35))  # noisy front + notes
+    section_hits = [14, 19]
+    out = prioritize_ocr_candidates(
+        hits,
+        38,
+        contents_hits=contents,
+        section_hits=section_hits,
+        neighbour=2,
+        max_pages=28,
+    )
+    assert 14 in out and 15 in out and 19 in out
+    # Gap close should retain the consolidated BS page
+    assert 15 in out or 16 in out
+
+
+def test_detect_section_cash_flow_ocr_variants():
+    assert detect_section("CONSOLIDATED STATEMENT OF CASH FLOWS") == "cash_flow"
+    assert detect_section("Consolidated Statement of Cash Fiows") == "cash_flow"
+    assert detect_section("Group cash flow statement") == "cash_flow"
 
 
 def test_probe_financial_pages_injectable_ocr_covers_back_half():

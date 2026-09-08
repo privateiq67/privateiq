@@ -34,7 +34,7 @@ PROBE_DPI_SCALE = 1.0  # low-res probe (~72 dpi * 1)
 FULL_OCR_DPI_SCALE = 2.0  # ~144 dpi equivalent via fitz Matrix
 PROBE_STRIDE = 2  # default stride for short docs; adaptive for long
 MAX_PROBE_PAGES = 80  # max pages to *probe* (not a front-only page cutoff)
-MAX_FULL_OCR_PAGES = 28  # budget for expensive full-DPI OCR
+MAX_FULL_OCR_PAGES = 32  # budget for expensive full-DPI OCR
 OCR_NEIGHBOUR = 2  # expand hits by ±2 pages
 
 SECTION_PATTERNS = {
@@ -61,10 +61,13 @@ SECTION_PATTERNS = {
         r"group (?:statement of )?financial position",
     ],
     "cash_flow": [
-        r"statement of cash flows?",
-        r"cash flow statement",
-        r"group (?:statement of )?cash flows?",
-        r"consolidated (?:statement of )?cash flows?",
+        r"statement of cash\s*(?:flows?|fiows?)",  # OCR: flows/fiows
+        r"cash\s*(?:flow|fiow) statements?",
+        r"group (?:statement of )?cash\s*(?:flows?|fiows?)",
+        r"consolidated (?:statement of )?cash\s*(?:flows?|fiows?)",
+        r"consolidated cash\s*(?:flow|fiow) statement",
+        r"group cash\s*(?:flow|fiow) statement",
+        r"cash\s*(?:flows?|fiows?) from operating activities",  # page starting mid-statement
     ],
 }
 
@@ -78,7 +81,11 @@ PROBE_KEYWORDS = re.compile(
     r"income\s+statement|"
     r"comprehensive\s+income|"
     r"consolidated\s+(?:income|statement)|"
-    r"cash\s*flows?|"
+    r"cash\s*(?:flows?|fiows?)|"
+    r"operating\s+activities|"
+    r"investing\s+activities|"
+    r"financing\s+activities|"
+    r"net\s+interest\s+income|"
     r"turnover|"
     r"revenue|"
     r"fixed\s+assets|"
@@ -630,15 +637,18 @@ def prioritize_ocr_candidates(
     n_pages: int,
     *,
     contents_hits: list[int] | None = None,
+    section_hits: list[int] | None = None,
     neighbour: int = OCR_NEIGHBOUR,
     max_pages: int = MAX_FULL_OCR_PAGES,
 ) -> list[int]:
     """
     Expand hits by ±neighbour, score, and cap to ``max_pages``.
 
-    Contents-hint and mid/back statement hits win over front-matter.
+    Real statement-header hits outrank noisy contents-page guesses (which often
+    parse year/note numbers as page refs and starve the BS/CF window).
     """
     contents_set = set(contents_hits or [])
+    section_set = set(section_hits or [])
     scored: dict[int, int] = {}
 
     def bump(p: int, base: int, dist: int) -> None:
@@ -648,15 +658,46 @@ def prioritize_ocr_candidates(
         score = base - abs(dist)
         scored[p] = max(scored.get(p, 0), score)
 
-    seeds = sorted(set(hits) | contents_set)
+    seeds = sorted(set(hits) | contents_set | section_set)
     for h in seeds:
-        base = probe_hit_priority(h, n_pages, from_contents=h in contents_set)
+        if h in section_set:
+            base = 220  # statement header on probe — highest
+        elif h in contents_set and h not in set(hits):
+            # Contents-only guesses: useful but must not crowd out real hits
+            base = 90
+        else:
+            base = probe_hit_priority(h, n_pages, from_contents=h in contents_set)
+            if h in contents_set:
+                base = max(base, 100)
         for d in range(-neighbour, neighbour + 1):
             bump(h + d, base, d)
 
-    # Sort by score desc, then page asc for stability
+    # Always reserve ±1 around section / probe hits before capping
+    must: list[int] = []
+    seen: set[int] = set()
+    for h in sorted(set(hits) | section_set):
+        for d in range(-1, 2):
+            p = h + d
+            if 0 <= p < n_pages and p not in seen:
+                must.append(p)
+                seen.add(p)
+
     ordered = sorted(scored.keys(), key=lambda p: (-scored[p], p))
-    return ordered[: max(1, max_pages)] if ordered else []
+    rest = [p for p in ordered if p not in seen]
+    out = (must + rest)[: max(1, max_pages)]
+
+    # Close small gaps between kept pages (e.g. IS on 14 + CF on 19 → keep 15–18)
+    if out:
+        filled = set(out)
+        kept_sorted = sorted(filled)
+        for a, b in zip(kept_sorted, kept_sorted[1:]):
+            if 1 < (b - a) <= 4:
+                for p in range(a + 1, b):
+                    filled.add(p)
+        # Re-apply cap preferring must/section neighbourhood
+        ordered2 = sorted(filled, key=lambda p: (0 if p in seen else 1, -scored.get(p, 0), p))
+        out = ordered2[: max(1, max_pages)]
+    return out
 
 
 def probe_financial_pages(
@@ -680,29 +721,38 @@ def probe_financial_pages(
         n_pages, max_probe=max_probe, stride=stride
     )
     hits: list[int] = []
+    section_hits: list[int] = []
     contents_printed: list[int] = []
     probe_stats: dict[str, Any] = {
         "probed_pages": [],
         "hit_pages": [],
+        "section_hit_pages": [],
         "stride": used_stride,
         "n_pages": n_pages,
         "max_probe": max_probe,
         "contents_printed_pages": [],
     }
     for i in indices:
-        text = ocr_fn(content, i)
+        page_text = ocr_fn(content, i)
         probe_stats["probed_pages"].append(i)
-        if page_mentions_financials(text):
+        if page_mentions_financials(page_text):
             hits.append(i)
             probe_stats["hit_pages"].append(i)
+        if detect_section(page_text or ""):
+            section_hits.append(i)
+            probe_stats["section_hit_pages"].append(i)
         # Contents / index pages: early or pages that look like a TOC
-        low = (text or "").lower()
+        low = (page_text or "").lower()
         if i < 15 or "contents" in low or "page" in low[:200]:
-            printed = contents_page_hints(text)
+            printed = contents_page_hints(page_text)
+            # Drop implausible "page 1" noise on longer docs (footers / note refs)
+            if n_pages >= 30:
+                printed = [p for p in printed if p >= 5]
             if printed:
                 contents_printed.extend(printed)
     if contents_printed:
         probe_stats["contents_printed_pages"] = sorted(set(contents_printed))
+    probe_stats["section_hit_pages"] = sorted(set(section_hits))
     return hits, probe_stats
 
 
@@ -1051,6 +1101,22 @@ def extract_rows_from_words(
         for row in rows:
             label, values, raw_nums = _label_and_numbers(row, year_cols, page_width, scale=active_scale)
             norm_label = _norm(label) if label else ""
+            # UK BS totals often sit on a values-only row under a section header.
+            # Clear the sticky header at liability / equity boundaries so later
+            # provisions totals are not mis-labelled as Current/Fixed assets.
+            if label and any(
+                tok in norm_label
+                for tok in (
+                    "creditors",
+                    "provisions",
+                    "net current",
+                    "net assets",
+                    "capital and reserves",
+                    "equity attributable",
+                    "total assets less",
+                )
+            ):
+                pending_header = None
             if label and not values:
                 if norm_label in (
                     "fixed assets",
@@ -1134,10 +1200,12 @@ def _smart_ocr_words(
         probe_stats["contents_hints"] = contents_hits
         hits = sorted(set(hits + contents_hits))
 
+    section_hits = list(probe_stats.get("section_hit_pages") or [])
     candidates = prioritize_ocr_candidates(
         hits,
         n_pages,
         contents_hits=contents_hits,
+        section_hits=section_hits,
         neighbour=OCR_NEIGHBOUR,
         max_pages=MAX_FULL_OCR_PAGES,
     )
@@ -1162,10 +1230,12 @@ def _smart_ocr_words(
                 extra_hits.append(i)
                 probe_stats.setdefault("hit_pages", []).append(i)
         hits = sorted(set(hits + extra_hits))
+        section_hits = list(probe_stats.get("section_hit_pages") or [])
         candidates = prioritize_ocr_candidates(
             hits,
             n_pages,
             contents_hits=contents_hits,
+            section_hits=section_hits,
             neighbour=OCR_NEIGHBOUR,
             max_pages=MAX_FULL_OCR_PAGES,
         )
