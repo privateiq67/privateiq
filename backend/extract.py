@@ -16,20 +16,32 @@ YEAR_RE = re.compile(r"\b(20[1-3]\d)\b")
 
 
 def period_from_filing(filing: dict) -> str:
-    # Prefer accounts period end from description / action date
-    for key in ("description", "type", "date"):
+    """Best-effort accounts period year for cache keys / merge hints.
+
+    Prefer Companies House ``action_date`` / ``description_values.made_up_date``
+    (true period end) over the filing ``date`` (often the submission year, which
+    is one year later and causes cache misses + repeated OCR).
+    """
+    candidates: list[str] = []
+    desc_vals = filing.get("description_values") or {}
+    if isinstance(desc_vals, dict) and desc_vals.get("made_up_date"):
+        candidates.append(str(desc_vals["made_up_date"]))
+    if filing.get("action_date"):
+        candidates.append(str(filing["action_date"]))
+    for key in ("description", "type"):
         val = filing.get(key) or ""
         if isinstance(val, dict):
             continue
-        m = YEAR_RE.search(str(val))
-        if m:
-            # Prefer last year mentioned in description (often period end)
-            years = YEAR_RE.findall(str(val))
-            if years:
-                return years[-1]
-    date = filing.get("date") or ""
-    m = YEAR_RE.search(str(date))
-    return m.group(1) if m else str(date)[:4]
+        candidates.append(str(val))
+    # Filing submission date last — wrong year for many AA filings.
+    if filing.get("date"):
+        candidates.append(str(filing["date"]))
+
+    for val in candidates:
+        years = YEAR_RE.findall(val)
+        if years:
+            return years[-1]
+    return ""
 
 
 def parse_filing_bytes(

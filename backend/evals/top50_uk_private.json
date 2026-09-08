@@ -1,0 +1,380 @@
+{
+  "description": "Curated ~50 large UK private / PE-backed / family / growth firms that typically file full or group accounts at Companies House. Used for reproducible parser evaluation.",
+  "version": "1.0",
+  "companies": [
+    {
+      "name": "Gymshark Ltd",
+      "company_number": "08130873",
+      "sector": "Athleisure / DTC retail",
+      "why_included": "Known parser fixture; PE-backed consumer brand filing full accounts.",
+      "notes": "Operating co; Gymshark Group 12711328 is audit-exemption subsidiary."
+    },
+    {
+      "name": "Monzo Bank Limited",
+      "company_number": "09446231",
+      "sector": "Challenger bank / fintech",
+      "why_included": "Touched in product work; full bank accounts with FRS 102 / bank P&L lines."
+    },
+    {
+      "name": "TrueLayer Group Holdings Limited",
+      "company_number": "12500702",
+      "sector": "Open banking / fintech",
+      "why_included": "Touched; group accounts; FRS 102 iXBRL concept coverage.",
+      "notes": "Alternate operating co: TrueLayer Limited 10278251."
+    },
+    {
+      "name": "TrueLayer Limited",
+      "company_number": "10278251",
+      "sector": "Open banking / fintech",
+      "why_included": "Operating entity already used in parser hardening."
+    },
+    {
+      "name": "Fenix International Limited",
+      "company_number": "10354575",
+      "sector": "Digital platforms (OnlyFans)",
+      "why_included": "Touched; large private group filer with scanned/PDF accounts history."
+    },
+    {
+      "name": "Nscale Global Holdings Limited",
+      "company_number": "15749408",
+      "sector": "AI infrastructure / compute",
+      "why_included": "Recently touched growth company with UK filings."
+    },
+    {
+      "name": "Wayve Technologies Ltd",
+      "company_number": "10924127",
+      "sector": "Autonomous vehicles / AI",
+      "why_included": "Touched; VC-backed scale-up filing group accounts."
+    },
+    {
+      "name": "Bet365 Group Limited",
+      "company_number": "04241161",
+      "sector": "Online gambling",
+      "why_included": "Largest private UK gambling group; full/group accounts.",
+      "notes": "Hillside Shared Services 03958393 is small accounts — prefer Group."
+    },
+    {
+      "name": "Wates Group Limited",
+      "company_number": "01824828",
+      "sector": "Construction / property",
+      "why_included": "Touched; family construction group; long scanned PDF accounts (OCR stress)."
+    },
+    {
+      "name": "John Lewis Partnership plc",
+      "company_number": "00238937",
+      "sector": "Retail / partnership",
+      "why_included": "Iconic large UK private (employee-owned) group filer."
+    },
+    {
+      "name": "Specsavers Optical Superstores Limited",
+      "company_number": "01721624",
+      "sector": "Optical retail",
+      "why_included": "UK operating/group filer for Specsavers; Optical Group is Guernsey-centred.",
+      "notes": "Alternate: Specsavers UK Holdings Limited 10837649."
+    },
+    {
+      "name": "J.C. Bamford Excavators Limited",
+      "company_number": "00561597",
+      "sector": "Heavy machinery / manufacturing",
+      "why_included": "JCB manufacturing entity filing group accounts.",
+      "notes": "Related: J.C.B. Service 00564955 (private unlimited group)."
+    },
+    {
+      "name": "J.C.B. Service",
+      "company_number": "00564955",
+      "sector": "Heavy machinery / manufacturing",
+      "why_included": "Core JCB private-unlimited group accounts filer."
+    },
+    {
+      "name": "John Swire & Sons Limited",
+      "company_number": "00133143",
+      "sector": "Conglomerate / family holding",
+      "why_included": "Major UK family conglomerate filing group accounts."
+    },
+    {
+      "name": "Arnold Clark Automobiles Limited",
+      "company_number": "SC036386",
+      "sector": "Automotive retail",
+      "why_included": "Scotland's largest private car retailer; group accounts."
+    },
+    {
+      "name": "Iceland Foods Limited",
+      "company_number": "01107406",
+      "sector": "Grocery retail",
+      "why_included": "Large private supermarket; full accounts (B-Corp related group).",
+      "notes": "Group holdco Iceland Foods Group 06071707 is audit-exemption subsidiary."
+    },
+    {
+      "name": "Dyson Limited",
+      "company_number": "02627406",
+      "sector": "Consumer technology / manufacturing",
+      "why_included": "UK-filed Dyson operating co with full accounts.",
+      "notes": "Alternate: Dyson UK Group Limited 07086916; ultimate often Singapore."
+    },
+    {
+      "name": "Weybourne Limited",
+      "company_number": "10260912",
+      "sector": "Family investment / James Dyson",
+      "why_included": "UK Dyson-related holding group filing group accounts."
+    },
+    {
+      "name": "INEOS Industries Limited",
+      "company_number": "06959146",
+      "sector": "Chemicals / industrials",
+      "why_included": "Trading/group Ineos UK entity (top holdcos often dormant).",
+      "notes": "Alternates: INEOS Holdings Limited 04215887; INEOS Enterprises Group 04687714. Avoid dormant 03534631 / 04215862."
+    },
+    {
+      "name": "Bestway Wholesale Limited",
+      "company_number": "01207120",
+      "sector": "Wholesale / cash & carry",
+      "why_included": "Large family wholesale group filing full accounts."
+    },
+    {
+      "name": "Holland & Barrett Retail Limited",
+      "company_number": "02758955",
+      "sector": "Health & wellness retail",
+      "why_included": "Main UK trading retailer filing full accounts.",
+      "notes": "Holdings 03262074 is audit-exemption subsidiary."
+    },
+    {
+      "name": "The Very Group Limited",
+      "company_number": "04730752",
+      "sector": "Online retail / consumer credit",
+      "why_included": "Large private online retail group (Shop Direct successor).",
+      "notes": "Alternate trading: Shop Direct Home Shopping Limited 04663281."
+    },
+    {
+      "name": "Pret A Manger (Europe) Limited",
+      "company_number": "01854213",
+      "sector": "Foodservice / QSR",
+      "why_included": "Still privately held (JAB); large UK operating filer."
+    },
+    {
+      "name": "BrewDog plc",
+      "company_number": "SC311560",
+      "sector": "Brewing / consumer",
+      "why_included": "Well-known private (equity crowd) brand; still files despite administration status.",
+      "notes": "Company status: administration — useful stress case."
+    },
+    {
+      "name": "Starling Bank Limited",
+      "company_number": "09092149",
+      "sector": "Challenger bank",
+      "why_included": "Major private challenger bank filing group accounts."
+    },
+    {
+      "name": "Revolut Ltd",
+      "company_number": "08804411",
+      "sector": "Fintech / e-money",
+      "why_included": "Largest UK fintech unicorn; UK entity filing full accounts."
+    },
+    {
+      "name": "Checkout Ltd",
+      "company_number": "08037323",
+      "sector": "Payments",
+      "why_included": "Checkout.com UK entity filing full accounts."
+    },
+    {
+      "name": "EG Group Limited",
+      "company_number": "09826582",
+      "sector": "Petrol retail / convenience",
+      "why_included": "Issa brothers PE-backed fuel/retail giant; group accounts."
+    },
+    {
+      "name": "Asda Stores Limited",
+      "company_number": "00464777",
+      "sector": "Grocery retail",
+      "why_included": "PE-backed (Issa/TDR) large supermarket operating co."
+    },
+    {
+      "name": "Moto Hospitality Limited",
+      "company_number": "00734299",
+      "sector": "Motorway services",
+      "why_included": "Large private hospitality/services filer."
+    },
+    {
+      "name": "Virgin Media Limited",
+      "company_number": "02591237",
+      "sector": "Telecoms / cable",
+      "why_included": "Major UK telecoms private (Liberty) operating filer."
+    },
+    {
+      "name": "Hutchison 3G UK Limited",
+      "company_number": "03885486",
+      "sector": "Mobile telecoms (Three)",
+      "why_included": "Three UK operating co with full accounts."
+    },
+    {
+      "name": "Keepmoat Homes Limited",
+      "company_number": "02207338",
+      "sector": "Housebuilding",
+      "why_included": "Large private housebuilder filing full accounts."
+    },
+    {
+      "name": "Galliard Homes Limited",
+      "company_number": "02158998",
+      "sector": "Residential development",
+      "why_included": "Major private London developer."
+    },
+    {
+      "name": "Canary Wharf Group plc",
+      "company_number": "04191122",
+      "sector": "Commercial property",
+      "why_included": "Private property group with substantial UK filings."
+    },
+    {
+      "name": "P&O Ferries Limited",
+      "company_number": "00237626",
+      "sector": "Shipping / ferries",
+      "why_included": "Large private ferry operator (DP World)."
+    },
+    {
+      "name": "Associated British Ports Holdings Limited",
+      "company_number": "01612178",
+      "sector": "Ports / logistics",
+      "why_included": "Major private ports group."
+    },
+    {
+      "name": "New Look Limited",
+      "company_number": "01996366",
+      "sector": "Fashion retail",
+      "why_included": "Private fashion retailer (Arcadia-era peer / successor landscape)."
+    },
+    {
+      "name": "River Island Clothing Co. Limited",
+      "company_number": "00636095",
+      "sector": "Fashion retail",
+      "why_included": "Large family fashion retailer filing full accounts."
+    },
+    {
+      "name": "Poundland Limited",
+      "company_number": "02495645",
+      "sector": "Value retail",
+      "why_included": "Large private value retailer (Pepco group UK entity)."
+    },
+    {
+      "name": "Caffe Nero Group Holdings Ltd",
+      "company_number": "05936386",
+      "sector": "Coffee / foodservice",
+      "why_included": "Large private coffee chain group filer.",
+      "notes": "Italian Coffee Holdings 04129005 is audit-exemption subsidiary."
+    },
+    {
+      "name": "Octopus Energy Group Limited",
+      "company_number": "09718624",
+      "sector": "Energy supply / tech",
+      "why_included": "Large private energy group; prefer group over retail-only.",
+      "notes": "Alternate: Octopus Energy Limited 09263424."
+    },
+    {
+      "name": "GoCardless Ltd",
+      "company_number": "07495895",
+      "sector": "Payments / fintech",
+      "why_included": "Scale fintech with group accounts."
+    },
+    {
+      "name": "Modulr FS Limited",
+      "company_number": "09897919",
+      "sector": "Embedded finance",
+      "why_included": "Regulated payments fintech filing full accounts."
+    },
+    {
+      "name": "ClearBank Limited",
+      "company_number": "09736376",
+      "sector": "Banking infrastructure",
+      "why_included": "Clearing bank / BaaS private filer."
+    },
+    {
+      "name": "Thought Machine Group Limited",
+      "company_number": "11114277",
+      "sector": "Banking core tech",
+      "why_included": "Unicorn-scale private software group."
+    },
+    {
+      "name": "Oxa Autonomy Ltd",
+      "company_number": "09242359",
+      "sector": "Autonomous vehicles",
+      "why_included": "Formerly Oxbotica; UK AV group accounts."
+    },
+    {
+      "name": "Heathrow Airport Limited",
+      "company_number": "01991017",
+      "sector": "Airports / infrastructure",
+      "why_included": "Large private infrastructure operating co (prefer over Thames Water)."
+    },
+    {
+      "name": "Gatwick Airport Limited",
+      "company_number": "01991018",
+      "sector": "Airports / infrastructure",
+      "why_included": "Large private airport operator."
+    },
+    {
+      "name": "Laing O'Rourke plc",
+      "company_number": "04222545",
+      "sector": "Construction",
+      "why_included": "Major private construction group."
+    },
+    {
+      "name": "Sir Robert McAlpine Limited",
+      "company_number": "00566823",
+      "sector": "Construction",
+      "why_included": "Family construction firm filing full accounts."
+    },
+    {
+      "name": "Mace Limited",
+      "company_number": "02410626",
+      "sector": "Construction consultancy",
+      "why_included": "Large private construction/consultancy group."
+    },
+    {
+      "name": "Willmott Dixon Holdings Limited",
+      "company_number": "00198032",
+      "sector": "Construction",
+      "why_included": "Large private contractor group."
+    },
+    {
+      "name": "Samworth Brothers Limited",
+      "company_number": "03116767",
+      "sector": "Food manufacturing",
+      "why_included": "Large private food manufacturer."
+    },
+    {
+      "name": "2 Sisters Food Group Limited",
+      "company_number": "02826929",
+      "sector": "Food manufacturing",
+      "why_included": "Large private poultry/food processor."
+    },
+    {
+      "name": "Warburtons Limited",
+      "company_number": "00178711",
+      "sector": "Bakery / food",
+      "why_included": "Iconic family bakery with full accounts."
+    },
+    {
+      "name": "Cosmetic Warriors Limited",
+      "company_number": "04165681",
+      "sector": "Cosmetics (Lush)",
+      "why_included": "Lush IP/trading-related UK full accounts filer.",
+      "notes": "Alternate: Lush Cosmetics Limited 04162033 (group)."
+    },
+    {
+      "name": "Featurespace Limited",
+      "company_number": "05640420",
+      "sector": "Fraud analytics / fintech",
+      "why_included": "Scale private SaaS with group accounts."
+    },
+    {
+      "name": "Synthesia Limited",
+      "company_number": "10933652",
+      "sector": "Generative AI video",
+      "why_included": "High-growth AI private filing group accounts."
+    },
+    {
+      "name": "Graphcore Limited",
+      "company_number": "10185006",
+      "sector": "Semiconductor / AI chips",
+      "why_included": "Well-known UK deep-tech private with group accounts."
+    }
+  ]
+}
