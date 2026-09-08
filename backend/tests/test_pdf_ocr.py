@@ -10,6 +10,8 @@ sys.path.insert(0, str(ROOT))
 
 from pdf_extract import (
     Word,
+    detect_scale,
+    detect_scale_prefer_header,
     detect_section,
     expand_candidate_pages,
     extract_from_pdf_bytes,
@@ -284,3 +286,145 @@ def test_contents_page_hints_and_creditors_ocr():
     resolved = resolve_label("one Creditors: year amounts falling due within 20")
     assert resolved is not None
     assert resolved[1] == "Current Liabilities"
+
+
+def test_detect_scale_ocr_noisy_thousands_variants():
+    """OCR-like unit strings must resolve to £'000 / £m without false positives."""
+    thousands = [
+        "£'000",
+        "£000",
+        "£'000s",
+        "£000s",
+        "E'000",
+        "E000",
+        "L'000",
+        "£'OOO",  # O vs 0
+        "£’000",  # curly quote
+        "'000",
+        "'000s",
+        "000s",
+        "in thousands",
+        "All figures in £'000",
+        "figures are in £000s",
+        "£ thousand",
+        "£ thousands",
+        "(£'000)",
+        "$000",  # OCR often maps £ → $
+        "Notes $000 $000",
+        "Notes £'000 £'000 2024 2023",
+    ]
+    for s in thousands:
+        assert detect_scale(s) == 1000, s
+
+    millions = ["£m", "£ m", "in millions", "All figures in £m", "Em"]
+    for s in millions:
+        assert detect_scale(s) == 1_000_000, s
+
+    assert detect_scale("Revenue was strong this year") == 1
+    # Bare "l m" across word boundary must not look like £m
+    assert detect_scale("Material misstatements that arise") == 1
+    # Body "thousands of customers" alone must not flip units via header preference
+    assert detect_scale_prefer_header(
+        "The group serves thousands of customers worldwide."
+    ) == 1
+    # Unit near statement header / year columns should win
+    pl = (
+        "CONSOLIDATED STATEMENT OF COMPREHENSIVE INCOME\n"
+        "Notes  £’OOO  £’OOO\n2024 2023\nRevenue 1,413,094 1,306,696"
+    )
+    assert detect_scale_prefer_header(pl) == 1000
+    assert (
+        detect_scale_prefer_header("no units", header_extra="Notes £'000 2024 2023")
+        == 1000
+    )
+
+
+def test_scale_sticky_across_pages_when_unit_ocr_missed():
+    """Once £'000 is seen on P&L, following BS page keeps scale if OCR drops unit."""
+    pl_text = (
+        "PROFIT AND LOSS ACCOUNT FOR THE YEAR ENDED 31 DECEMBER 2024 "
+        "Notes £'000 £'000 2024 2023 Revenue 1413094 1306696"
+    )
+    # Balance sheet page deliberately omits unit markers (OCR miss)
+    bs_text = (
+        "BALANCE SHEET AS AT 31 DECEMBER 2024 "
+        "2024 2023 Total current liabilities (779264) (675476) "
+        "Total equity 160470 137166"
+    )
+    words = [
+        Word("PROFIT", 40, 90, 40, 52, 0),
+        Word("AND", 95, 120, 40, 52, 0),
+        Word("LOSS", 125, 160, 40, 52, 0),
+        Word("ACCOUNT", 165, 230, 40, 52, 0),
+        Word("£'000", 400, 440, 70, 82, 0),
+        Word("£'000", 480, 520, 70, 82, 0),
+        Word("2024", 400, 440, 90, 102, 0),
+        Word("2023", 480, 520, 90, 102, 0),
+        Word("Revenue", 40, 120, 130, 142, 0),
+        Word("1,413,094", 400, 470, 130, 142, 0),
+        Word("1,306,696", 480, 550, 130, 142, 0),
+        Word("BALANCE", 40, 110, 40, 52, 1),
+        Word("SHEET", 115, 165, 40, 52, 1),
+        Word("2024", 400, 440, 90, 102, 1),
+        Word("2023", 480, 520, 90, 102, 1),
+        Word("Total", 40, 80, 160, 172, 1),
+        Word("current", 85, 145, 160, 172, 1),
+        Word("liabilities", 150, 240, 160, 172, 1),
+        Word("(779,264)", 400, 470, 160, 172, 1),
+        Word("(675,476)", 480, 550, 160, 172, 1),
+        Word("Total", 40, 80, 190, 202, 1),
+        Word("equity", 85, 140, 190, 202, 1),
+        Word("160,470", 400, 460, 190, 202, 1),
+        Word("137,166", 480, 545, 190, 202, 1),
+    ]
+    rows, stats = extract_rows_from_words(
+        words, [pl_text, bs_text], default_method="pdf_ocr", ocr_page_set={0, 1}, y_tol=8.0
+    )
+    rev = [r for r in rows if r.label.lower() == "revenue"]
+    assert rev and rev[0].scale == 1000
+    assert rev[0].values_by_year["2024"] == 1_413_094_000
+    liab = [r for r in rows if "current liabilities" in r.label.lower()]
+    assert liab, rows
+    assert liab[0].scale == 1000  # sticky from P&L page
+    assert liab[0].values_by_year["2024"] == -779_264_000  # sign still from parens at extract
+
+
+def test_liability_totals_normalised_positive():
+    """Parenthesised liability OCR amounts become positive schema magnitudes."""
+    year = apply_labelled_items(
+        [
+            {
+                "label": "Total current liabilities",
+                "value": -779_264_000,
+                "provenance": {"confidence": 65, "method": "pdf_ocr", "scale_applied": 1000},
+            },
+            {
+                "label": "Total non-current liabilities",
+                "value": -112_000,
+                "provenance": {"confidence": 65, "method": "pdf_ocr", "scale_applied": 1000},
+            },
+            {
+                "label": "Total liabilities",
+                "value": -779_376_000,
+                "provenance": {"confidence": 65, "method": "pdf_ocr", "scale_applied": 1000},
+            },
+            {
+                "label": "Cost of sales",
+                "value": -849_480_000,
+                "provenance": {"confidence": 65, "method": "pdf_ocr", "scale_applied": 1000},
+            },
+            {
+                "label": "Current Liabilities",
+                "value": 50_000,  # already positive — do not double-flip
+                "provenance": {"confidence": 40, "method": "pdf"},
+            },
+        ],
+        period="2024",
+        parsing_status="pdf_ocr",
+    )
+    assert year["balance_sheet"]["Current Liabilities"]["value"] == 779_264_000
+    assert year["balance_sheet"]["Non-Current Liabilities"]["value"] == 112_000
+    assert year["balance_sheet"]["Total Liabilities"]["value"] == 779_376_000
+    # Signed P&L expense convention retained
+    assert year["income_statement"]["Cost of Sales"]["value"] == -849_480_000
+

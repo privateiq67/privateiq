@@ -109,14 +109,122 @@ def tesseract_available() -> bool:
     return shutil.which("tesseract") is not None
 
 
+def _normalize_scale_text(text: str) -> str:
+    """OCR-tolerant normalisation before unit/scale regexes.
+
+    Handles curly/smart quotes, common £→E/L misreads next to 000, and O↔0
+    inside thousand markers. Does not invent units from body narrative alone.
+    """
+    t = (text or "").lower()
+    for a, b in (
+        ("\u2018", "'"),
+        ("\u2019", "'"),
+        ("\u201a", "'"),
+        ("\u2032", "'"),  # prime
+        ("\u00b4", "'"),
+        ("`", "'"),
+        ("´", "'"),
+        ("′", "'"),
+        ("\u201c", '"'),
+        ("\u201d", '"'),
+    ):
+        t = t.replace(a, b)
+    t = re.sub(r"[\s\u00a0]+", " ", t)
+    return t
+
+
+# Prefer millions before thousands. Patterns are OCR-tolerant (O↔0, £↔e/l/€).
+# Currency glyph OCR often maps £ → $ / E / e. Do NOT use bare "l" before "m"
+# (false-positive on "...al misstatements"). Prefer explicit £/$/€ or standalone Em/£m.
+_SCALE_MILLIONS_RE = re.compile(
+    r"(?:"
+    r"[£€$]\s*'?\s*m\b|"
+    r"[£€$]m\b|"
+    r"(?<![a-z])e\s*'?\s*m\b|"  # Em / E m as unit token, not "...e m..."
+    r"\bin\s+millions?\b|"
+    r"\ball\s+figures\s+in\s+[£€$e]?\s*'?\s*m\b|"
+    r"[£€$]\s*millions?\b"
+    r")",
+    re.I,
+)
+
+# Thousands: £'000, £000, $000 (OCR of £000), '000, 000s, in thousands, E'OOO, etc.
+_SCALE_THOUSANDS_RE = re.compile(
+    r"(?:"
+    r"[£€$]\s*'\s*[0o]{3}\s*s?\b|"  # £'000 / $'000 / £'000s
+    r"[£€$]\s*[0o]{3}\s*s?\b|"  # £000 / $000 / £OOO (common OCR £→$)
+    r"(?<![a-z])[el]\s*'\s*[0o]{3}\s*s?\b|"  # E'000 / L'000
+    r"(?<![a-z])[el]\s*[0o]{3}\s*s?\b|"  # E000 / L000
+    r"(?<![\w.])'\s*[0o]{3}\s*s?\b|"  # '000 / '000s column headers
+    r"(?<![\w.])[0o]{3}\s*s\b|"  # 000s
+    r"\bin\s+thousands?\b|"
+    r"\ball\s+figures\s+in\s+[£€$el]?\s*'?[0o]{3}\s*s?\b|"
+    r"figures?\s+(?:are\s+)?in\s+[£€$el]?\s*'?[0o]{3}\s*s?\b|"
+    r"[£€$]\s*thousands?\b|"
+    r"(?<![a-z])[el]\s*thousands?\b|"
+    r"\([£€$el]?\s*'?[0o]{3}\s*s?\)|"  # (£'000) / ($000)
+    r"\[[£€$el]?\s*'?[0o]{3}\s*s?\]"
+    r")",
+    re.I,
+)
+
+# Phrases that look like unit declarations (header/table context), not random body.
+_SCALE_HEADERISH_RE = re.compile(
+    r"(?i)("
+    r"notes?|all\s+figures|amounts?\s+(?:are\s+)?in|expressed\s+in|"
+    r"profit\s*(?:and|&)\s*loss|income\s+statement|balance\s+sheet|"
+    r"financial\s+position|statement\s+of|consolidated|"
+    r"\b20[1-3]\d\b|"  # year headers near unit columns
+    r"[£€$el]\s*'?[0o]{3}|[£€$]\s*'?m\b|'\s*[0o]{3}|\$\s*[0o]{3}"
+    r")"
+)
+
+
 def detect_scale(text: str) -> int:
-    t = text.lower()
-    if re.search(r"£\s*m\b|£m\b|in millions|£'?m\b", t):
+    """Return 1 / 1_000 / 1_000_000 from unit markers in *text*.
+
+    OCR-tolerant. Prefer calling detect_scale_prefer_header for page text so
+    body mentions of "thousands of customers" do not flip statement units.
+    """
+    t = _normalize_scale_text(text)
+    if not t.strip():
+        return 1
+    if _SCALE_MILLIONS_RE.search(t):
         return 1_000_000
-    # OCR often mangles £'000 as E'000 / £000 / £'000
-    if re.search(r"£'?0{3}\b|£000\b|£'000\b|e'?000\b|in thousands|£\s*000", t):
+    if _SCALE_THOUSANDS_RE.search(t):
         return 1_000
     return 1
+
+
+def detect_scale_prefer_header(text: str, *, header_extra: str = "") -> int:
+    """Detect scale preferring section/table-header context over body narrative.
+
+    Order: explicit header_extra (e.g. top table rows) → first ~1.2k chars /
+    early lines → full page only if a unit token sits near a headerish phrase.
+    """
+    chunks: list[str] = []
+    if header_extra and header_extra.strip():
+        chunks.append(header_extra)
+    raw = text or ""
+    lines = raw.splitlines()
+    early = "\n".join(lines[:18])
+    chunks.append(early)
+    chunks.append(raw[:1200])
+
+    for chunk in chunks:
+        scale = detect_scale(chunk)
+        if scale != 1:
+            return scale
+
+    # Full-page fallback: only accept if unit token is near headerish context
+    t = _normalize_scale_text(raw)
+    for cre, scale in ((_SCALE_MILLIONS_RE, 1_000_000), (_SCALE_THOUSANDS_RE, 1_000)):
+        for m in cre.finditer(t):
+            window = t[max(0, m.start() - 80) : m.end() + 80]
+            if _SCALE_HEADERISH_RE.search(window):
+                return scale
+    return 1
+
 
 
 def detect_section(text: str) -> Optional[str]:
@@ -602,18 +710,27 @@ def extract_rows_from_words(
         page_method = "pdf_ocr" if page_idx in ocr_pages else default_method
         page_y_tol = ocr_y_tol if page_idx in ocr_pages else y_tol
 
+        rows = cluster_rows(page_words, y_tol=page_y_tol)
+        # Unit markers often live only in the first few table-header rows
+        # (OCR may mangle them in plain text). Prefer that context.
+        header_extra = " ".join(
+            w.text for row in rows[:12] for w in row
+        )
+        page_scale = detect_scale_prefer_header(text, header_extra=header_extra)
+
         section_hit = detect_section(text)
         if section_hit:
             active_section = section_hit
-            active_scale = detect_scale(text)
+            # Sticky: only overwrite scale when a unit is actually declared.
+            # Starting a new P&L/BS page must not reset £'000 → 1 just because
+            # OCR missed the unit line on that page.
+            if page_scale != 1:
+                active_scale = page_scale
             if active_section not in stats["sections"]:
                 stats["sections"].append(active_section)
-
-        page_scale = detect_scale(text)
-        if page_scale != 1 and active_section:
+        elif page_scale != 1 and active_section:
             active_scale = page_scale
 
-        rows = cluster_rows(page_words, y_tol=page_y_tol)
         year_cols = detect_year_columns(rows, page_width)
         if year_cols:
             year_cols = refine_year_columns(rows, year_cols, page_width)
@@ -657,7 +774,20 @@ def extract_rows_from_words(
                 pending_header = None
             if not label or not values:
                 continue
-            if _norm(label) in ("note", "notes", "£", "£000", "£'000", "£m", "e'000"):
+            if _norm(label) in (
+                "note",
+                "notes",
+                "£",
+                "£000",
+                "£'000",
+                "£'000s",
+                "£000s",
+                "£m",
+                "e'000",
+                "e000",
+                "'000",
+                "000s",
+            ):
                 continue
             if YEAR_RE.fullmatch(label.strip()):
                 continue

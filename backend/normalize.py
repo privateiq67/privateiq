@@ -122,6 +122,19 @@ SYNONYMS: dict[str, tuple[str, str]] = {
 }
 
 
+
+# CapIQ-style schema stores liability *totals* as positive magnitudes owed.
+# UK accounts / OCR often wrap liability figures in parentheses — treat those
+# as presentation, not a negative liability stock.
+LIABILITY_POSITIVE_KEYS = frozenset(
+    {
+        "Current Liabilities",
+        "Non-Current Liabilities",
+        "Total Liabilities",
+    }
+)
+
+
 def _norm_label(label: str) -> str:
     s = label.lower().replace("–", "-").replace("—", "-").replace("’", "'")
     s = re.sub(r"\s+", " ", s).strip(" :")
@@ -222,8 +235,12 @@ def apply_labelled_items(
         prov = dict(entry.get("provenance") or {})
         prov.setdefault("confidence", conf)
         prov.setdefault("raw_label", label)
+        num = float(value)
+        # Liability totals: always positive magnitudes (do not double-flip positives).
+        if schema_key in LIABILITY_POSITIVE_KEYS:
+            num = abs(num)
         item = line(
-            float(value),
+            num,
             source=entry.get("source"),
             provenance=prov,  # type: ignore[arg-type]
         )
@@ -312,11 +329,20 @@ def derive_and_validate(income: dict, balance: dict, cash: dict) -> list[str]:
     if ta is None and ca is not None and nca is not None:
         set_derived(balance, "Total Assets", ca + nca, "CA + NCA")
 
+    # Force liability totals positive before deriving / identity checks.
+    # iXBRL sign="-" and OCR parentheses must not leave negative liability stock.
+    for _lk in LIABILITY_POSITIVE_KEYS:
+        _item = balance.get(_lk)
+        if _item and _item.get("value") is not None and float(_item["value"]) < 0:
+            _fixed = dict(_item)
+            _fixed["value"] = abs(float(_item["value"]))
+            balance[_lk] = _fixed
+
     cl = val(balance, "Current Liabilities")
     ncl = val(balance, "Non-Current Liabilities")
     tl = val(balance, "Total Liabilities")
     if tl is None and cl is not None and ncl is not None:
-        set_derived(balance, "Total Liabilities", cl + ncl, "CL + NCL")
+        set_derived(balance, "Total Liabilities", abs(cl) + abs(ncl), "CL + NCL")
 
     eq = val(balance, "Equity")
     na = val(balance, "Net Assets")

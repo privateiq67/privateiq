@@ -46,7 +46,7 @@ def test_scale_and_sign_on_balance_sheet():
     assert y2024["balance_sheet"]["Non-Current Assets"]["value"] == 95_000_000
     assert y2024["balance_sheet"]["Current Assets"]["value"] == 180_000_000
     # sign="-" on creditors
-    assert y2024["balance_sheet"]["Current Liabilities"]["value"] == -95_000_000
+    assert y2024["balance_sheet"]["Current Liabilities"]["value"] == 95_000_000
     assert y2024["balance_sheet"]["Net Assets"]["value"] == 140_000_000
     assert y2024["balance_sheet"]["Equity"]["value"] == 140_000_000
 
