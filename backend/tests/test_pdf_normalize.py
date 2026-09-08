@@ -111,3 +111,50 @@ def test_no_invented_ebitda_without_da():
     )
     assert "EBIT" in year["income_statement"]  # aliased
     assert "EBITDA (Est)" not in year["income_statement"]  # must not invent
+
+
+def test_ocr_noisy_construction_labels():
+    """Wates/group OCR mangling must still map to schema keys."""
+    cases = [
+        ("Tumover", "Revenue"),
+        ("Operatlng proflt", "Operating Profit"),
+        ("Profit before taxatlon", "Profit Before Tax"),
+        ("Cost of saies", "Cost of Sales"),
+        ("Adminlstrative expenses", "Administrative Expenses"),
+        ("Tota1 equity", "Equity"),
+        ("Group turnover", "Revenue"),
+        ("Group operating profit", "Operating Profit"),
+        ("Net assels", "Net Assets"),
+        ("Currcnt assets", "Current Assets"),
+    ]
+    for raw, expected in cases:
+        resolved = resolve_label(raw)
+        assert resolved is not None, raw
+        assert resolved[1] == expected, (raw, resolved)
+
+
+def test_noisy_labelled_rows_become_schema_keys():
+    """17 OCR rows with values must not collapse to empty years after normalize."""
+    labelled = [
+        {"label": "Tumover", "value": 1_413_094_000.0, "section": "income_statement"},
+        {"label": "Cost of saies", "value": -1_200_000_000.0, "section": "income_statement"},
+        {"label": "Operatlng proflt", "value": 45_000_000.0, "section": "income_statement"},
+        {"label": "Profit before taxatlon", "value": 40_000_000.0, "section": "income_statement"},
+        {"label": "Fixed assels", "value": 100_000_000.0, "section": "balance_sheet"},
+        {"label": "Currcnt assets", "value": 500_000_000.0, "section": "balance_sheet"},
+        {"label": "Tota1 equity", "value": 160_000_000.0, "section": "balance_sheet"},
+        {"label": "Net assels", "value": 160_000_000.0, "section": "balance_sheet"},
+    ]
+    year = apply_labelled_items(labelled, period="2024", parsing_status="pdf_ocr")
+    assert year["period"] == "2024"
+    assert year["income_statement"]["Revenue"]["value"] == 1_413_094_000.0
+    assert year["income_statement"]["Operating Profit"]["value"] == 45_000_000.0
+    assert year["income_statement"]["Profit Before Tax"]["value"] == 40_000_000.0
+    assert year["balance_sheet"]["Equity"]["value"] == 160_000_000.0
+    assert year["balance_sheet"]["Current Assets"]["value"] == 500_000_000.0
+
+
+def test_net_current_assets_not_current_assets():
+    assert resolve_label("Net current assets") is None
+    assert resolve_label("Group statutory turnover")[1] == "Revenue"
+    assert resolve_label("Group operating profit/(loss) | 4 25.2)")[1] == "Operating Profit"

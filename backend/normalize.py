@@ -127,7 +127,47 @@ SYNONYMS: dict[str, tuple[str, str]] = {
     "net increase in cash and cash equivalents": ("cash_flow", "Net Change in Cash"),
     "net decrease in cash and cash equivalents": ("cash_flow", "Net Change in Cash"),
     "net increase/(decrease) in cash": ("cash_flow", "Net Change in Cash"),
+    # Construction / UK group common labels
+    "group turnover": ("income_statement", "Revenue"),
+    "group revenue": ("income_statement", "Revenue"),
+    "continuing operations - turnover": ("income_statement", "Revenue"),
+    "continuing operations turnover": ("income_statement", "Revenue"),
+    "revenue from continuing operations": ("income_statement", "Revenue"),
+    "turnover from continuing operations": ("income_statement", "Revenue"),
+    "administration expenses": ("income_statement", "Administrative Expenses"),
+    "operating profit (loss)": ("income_statement", "Operating Profit"),
+    "group operating profit": ("income_statement", "Operating Profit"),
+    "group operating profit/(loss)": ("income_statement", "Operating Profit"),
+    "profit before tax from continuing operations": ("income_statement", "Profit Before Tax"),
+    "profit before taxation from continuing operations": ("income_statement", "Profit Before Tax"),
+    "total equity attributable to owners": ("balance_sheet", "Equity"),
+    "equity attributable to owners of the parent": ("balance_sheet", "Equity"),
+    "equity shareholders funds": ("balance_sheet", "Equity"),
+    "net cash inflow from operating activities": ("cash_flow", "Operating CF"),
+    "net cash outflow from operating activities": ("cash_flow", "Operating CF"),
+    "net cash inflow/(outflow) from operating activities": ("cash_flow", "Operating CF"),
+    "net cash used in investing activities": ("cash_flow", "Investing CF"),
+    "net cash used in financing activities": ("cash_flow", "Financing CF"),
+    "net cash from/(used in) investing activities": ("cash_flow", "Investing CF"),
+    "net cash from/(used in) financing activities": ("cash_flow", "Financing CF"),
+    "group turnover": ("income_statement", "Revenue"),
+    "group statutory turnover": ("income_statement", "Revenue"),
+    "statutory turnover": ("income_statement", "Revenue"),
+    "group and share of joint ventures and associates": ("income_statement", "Revenue"),
+    "group operating profit/(loss)": ("income_statement", "Operating Profit"),
+    "group operating profit (loss)": ("income_statement", "Operating Profit"),
+    "group statutory profit/(loss) before tax": ("income_statement", "Profit Before Tax"),
+    "group statutory profit before tax": ("income_statement", "Profit Before Tax"),
+    "group profit/(loss) before tax": ("income_statement", "Profit Before Tax"),
+    "group profit before tax": ("income_statement", "Profit Before Tax"),
+    "group profit/(loss) for the financial year": ("income_statement", "Net Income"),
+    "group profit for the financial year": ("income_statement", "Net Income"),
+    "group profit/(loss) for the year": ("income_statement", "Net Income"),
+    "shareholders funds": ("balance_sheet", "Equity"),
+    "shareholders' funds": ("balance_sheet", "Equity"),
+    "shareholders’ funds": ("balance_sheet", "Equity"),
 }
+
 
 
 
@@ -144,25 +184,104 @@ LIABILITY_POSITIVE_KEYS = frozenset(
 
 
 def _norm_label(label: str) -> str:
-    s = label.lower().replace("–", "-").replace("—", "-").replace("’", "'")
-    s = re.sub(r"\s+", " ", s).strip(" :")
+    s = label.lower().replace("–", "-").replace("—", "-").replace("’", "'").replace("'", "'")
+    # Pipe often separates label from OCR junk — drop trailing pipe segments with digits
+    s = s.replace("|", " ")
+    s = re.sub(r"\s+", " ", s).strip(" :.-")
     # Strip trailing note refs like "3" / "(note 4)"
     s = re.sub(r"\s*\(note\s*\d+\)\s*$", "", s)
-    s = re.sub(r"\s+\d{1,2}$", "", s)
-    return s.strip()
+    # Strip trailing numeric / £m / OCR crumbs glued onto labels (repeat)
+    for _ in range(8):
+        n = re.sub(r"[\s,]+[\d.,()£$€m/-]+$", "", s)
+        n = re.sub(r"\s+[a-z]\d{0,3}$", "", n)  # o7, a1
+        n = re.sub(r"\s+\d{1,2}$", "", n)
+        if n == s:
+            break
+        s = n
+    return s.strip(" :.-$,")
+
+
+# Common OCR confusions on key UK line labels (conservative, key-lines only).
+_OCR_LABEL_FIXES = (
+    (r"\btumover\b", "turnover"),  # rn→m
+    (r"\btum over\b", "turnover"),
+    (r"\brevenue\b", "revenue"),
+    (r"\brevenuc\b", "revenue"),
+    (r"\brevenuee\b", "revenue"),
+    (r"\boperatlng\b", "operating"),  # i→l
+    (r"\boperat1ng\b", "operating"),
+    (r"\boperatIng\b", "operating"),
+    (r"\bproflt\b", "profit"),
+    (r"\bprolit\b", "profit"),
+    (r"\bprof1t\b", "profit"),
+    (r"\bloss\b", "loss"),
+    (r"\badminlstrative\b", "administrative"),
+    (r"\badministratlve\b", "administrative"),
+    (r"\bexpenSes\b", "expenses"),
+    (r"\bexpenses\b", "expenses"),
+    (r"\bexpenscs\b", "expenses"),
+    (r"\bliabillties\b", "liabilities"),
+    (r"\bliabilitles\b", "liabilities"),
+    (r"\bliabilit1es\b", "liabilities"),
+    (r"\bcurrcnt\b", "current"),
+    (r"\btota1\b", "total"),
+    (r"\btotai\b", "total"),
+    (r"\bequily\b", "equity"),
+    (r"\bequitv\b", "equity"),
+    (r"\bflxed\b", "fixed"),
+    (r"\bassels\b", "assets"),
+    (r"\basses\b", "assets"),
+    (r"\btaxatlon\b", "taxation"),
+    (r"\bbefore taxatlon\b", "before taxation"),
+    (r"\bcost of saies\b", "cost of sales"),
+    (r"\bcost of sa1es\b", "cost of sales"),
+    (r"\bgross proflt\b", "gross profit"),
+    (r"\bnet assels\b", "net assets"),
+    (r"\bsharehoiders\b", "shareholders"),
+    (r"\bshareh0lders\b", "shareholders"),
+)
+
+
+def _ocr_fold_label(label: str) -> str:
+    """Apply conservative OCR character-fold fixes then normalise."""
+    s = _norm_label(label)
+    for pat, repl in _OCR_LABEL_FIXES:
+        s = re.sub(pat, repl, s, flags=re.I)
+    # Collapsed rn→m already handled; also try m→rn reverse for rare OCR
+    # Only for known mangled tokens, not globally (too reckless).
+    return s
+
+
+def _looks_like_primary_line(key: str) -> bool:
+    """True for short statement-line labels (not narrative sentences)."""
+    if not key or len(key) > 70:
+        return False
+    if len(key.split()) > 12:
+        return False
+    if re.search(r"\b(which|where|because|during|company's|directors?)\b", key):
+        return False
+    return True
 
 
 def resolve_label(label: str) -> Optional[tuple[str, str, int]]:
     """Return (statement, schema_key, confidence) or None."""
     key = _norm_label(label)
-    if key in SYNONYMS:
-        stmt, sk = SYNONYMS[key]
-        return stmt, sk, CONFIDENCE_LABEL_EXACT
+    folded = _ocr_fold_label(label)
+    for candidate in (key, folded):
+        if candidate in SYNONYMS:
+            stmt, sk = SYNONYMS[candidate]
+            conf = CONFIDENCE_LABEL_EXACT if candidate == key else CONFIDENCE_LABEL_FUZZY
+            return stmt, sk, conf
+    # "Net current assets" is a UK GAAP intermediate — never map to Current Assets
+    for candidate in (key, folded):
+        if candidate.startswith("net current assets") or candidate.startswith("net current liabilities"):
+            return None
     # OCR-tolerant UK creditors headings (word order often scrambled)
-    if "creditors" in key and "within" in key:
-        return "balance_sheet", "Current Liabilities", CONFIDENCE_LABEL_FUZZY
-    if "creditors" in key and ("after" in key or "more than one" in key):
-        return "balance_sheet", "Non-Current Liabilities", CONFIDENCE_LABEL_FUZZY
+    for candidate in (key, folded):
+        if "creditors" in candidate and "within" in candidate:
+            return "balance_sheet", "Current Liabilities", CONFIDENCE_LABEL_FUZZY
+        if "creditors" in candidate and ("after" in candidate or "more than one" in candidate):
+            return "balance_sheet", "Non-Current Liabilities", CONFIDENCE_LABEL_FUZZY
     # Reject note-line / KPI / charge descriptions that merely contain a synonym
     if re.search(
         r"\b(depreciation|amortisation|amortization|impairment|lease charges?|"
@@ -174,23 +293,81 @@ def resolve_label(label: str) -> Optional[tuple[str, str, int]]:
     # "net current assets" → Current Assets, "total assets less..." → Total Assets)
     best = None
     best_len = 0
+    for probe in (key, folded):
+        for alias, target in SYNONYMS.items():
+            if len(alias) < 5:
+                continue
+            if alias not in probe:
+                continue
+            if probe.startswith(alias):
+                rest = probe[len(alias):].strip(" :.-")
+                # Allow trailing note refs only; reject "total assets less current..."
+                if rest and not re.fullmatch(r"\d{1,2}", rest):
+                    if len(alias) < 0.85 * len(probe):
+                        continue
+            elif len(alias) < 0.55 * len(probe):
+                continue
+            if len(alias) > best_len:
+                best = (target[0], target[1], CONFIDENCE_LABEL_FUZZY)
+                best_len = len(alias)
+    if best:
+        return best
+
+    # Conservative edit-distance match for short OCR-mangled primary lines only.
+    # Max 2 char edits vs synonym keys of similar length — avoids narrative false hits.
+    if _looks_like_primary_line(folded):
+        fuzzy = _fuzzy_synonym_match(folded)
+        if fuzzy:
+            return fuzzy
+    return None
+
+
+def _fuzzy_synonym_match(key: str) -> Optional[tuple[str, str, int]]:
+    """Very tight Levenshtein-style match against synonym keys (len ≥ 6)."""
+    if len(key) < 6:
+        return None
+    best = None
+    best_dist = 99
     for alias, target in SYNONYMS.items():
-        if len(alias) < 5:
+        if abs(len(alias) - len(key)) > 2:
             continue
-        if alias not in key:
+        if len(alias) < 6:
             continue
-        if key.startswith(alias):
-            rest = key[len(alias):].strip(" :.-")
-            # Allow trailing note refs only; reject "total assets less current..."
-            if rest and not re.fullmatch(r"\d{1,2}", rest):
-                if len(alias) < 0.85 * len(key):
-                    continue
-        elif len(alias) < 0.55 * len(key):
+        # Cheap gate: first char or first 3-char bigram overlap
+        if alias[0] != key[0] and alias[:3] not in key and key[:3] not in alias:
             continue
-        if len(alias) > best_len:
-            best = (target[0], target[1], CONFIDENCE_LABEL_FUZZY)
-            best_len = len(alias)
-    return best
+        dist = _levenshtein(key, alias, max_dist=2)
+        if dist is None:
+            continue
+        if dist < best_dist or (dist == best_dist and best and len(alias) > len(best[3])):
+            best = (target[0], target[1], CONFIDENCE_LABEL_FUZZY, alias)
+            best_dist = dist
+    if best and best_dist <= 2:
+        return best[0], best[1], best[2]
+    return None
+
+
+def _levenshtein(a: str, b: str, *, max_dist: int = 2) -> Optional[int]:
+    """Levenshtein distance with early exit when > max_dist."""
+    if a == b:
+        return 0
+    la, lb = len(a), len(b)
+    if abs(la - lb) > max_dist:
+        return None
+    prev = list(range(lb + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i] + [0] * lb
+        row_min = i
+        for j, cb in enumerate(b, 1):
+            ins = cur[j - 1] + 1
+            delete = prev[j] + 1
+            sub = prev[j - 1] + (0 if ca == cb else 1)
+            cur[j] = min(ins, delete, sub)
+            row_min = min(row_min, cur[j])
+        if row_min > max_dist:
+            return None
+        prev = cur
+    return prev[lb] if prev[lb] <= max_dist else None
 
 
 def _conf_of(item: dict) -> int:

@@ -32,27 +32,38 @@ logger = logging.getLogger(__name__)
 MIN_DIGITAL_CHARS = 80
 PROBE_DPI_SCALE = 1.0  # low-res probe (~72 dpi * 1)
 FULL_OCR_DPI_SCALE = 2.0  # ~144 dpi equivalent via fitz Matrix
-PROBE_STRIDE = 2  # every Nth page during probe
-MAX_PROBE_PAGES = 50
-OCR_NEIGHBOUR = 1
+PROBE_STRIDE = 2  # default stride for short docs; adaptive for long
+MAX_PROBE_PAGES = 80  # max pages to *probe* (not a front-only page cutoff)
+MAX_FULL_OCR_PAGES = 28  # budget for expensive full-DPI OCR
+OCR_NEIGHBOUR = 2  # expand hits by ±2 pages
 
 SECTION_PATTERNS = {
     "income_statement": [
         r"statement of comprehensive income",
+        r"consolidated (?:statement of )?comprehensive income",
+        r"group (?:statement of )?comprehensive income",
         r"profit and loss account",
         r"profit\s*(?:&|and)\s*loss\s+account",
+        r"consolidated profit\s*(?:&|and)\s*loss",
+        r"group profit\s*(?:&|and)\s*loss",
         r"income statement",
+        r"consolidated income statement",
+        r"group income statement",
         r"consolidated statement of (?:profit|comprehensive income)",
         # Intentionally NOT bare "profit and loss" — matches "profit and loss reserves"
     ],
     "balance_sheet": [
         r"statement of financial position",
         r"balance sheet",
+        r"group balance sheet",
+        r"consolidated balance sheet",
         r"consolidated (?:statement of )?financial position",
+        r"group (?:statement of )?financial position",
     ],
     "cash_flow": [
         r"statement of cash flows?",
         r"cash flow statement",
+        r"group (?:statement of )?cash flows?",
         r"consolidated (?:statement of )?cash flows?",
     ],
 }
@@ -61,20 +72,51 @@ SECTION_PATTERNS = {
 PROBE_KEYWORDS = re.compile(
     r"(?i)\b("
     r"balance\s*sheet|"
+    r"group\s+balance\s*sheet|"
     r"statement\s+of\s+financial\s+position|"
     r"profit\s*(?:and|&)\s*loss|"
     r"income\s+statement|"
     r"comprehensive\s+income|"
+    r"consolidated\s+(?:income|statement)|"
     r"cash\s*flows?|"
     r"turnover|"
     r"revenue|"
     r"fixed\s+assets|"
     r"current\s+assets|"
-    r"net\s+assets"
+    r"net\s+assets|"
+    r"operating\s+profit|"
+    r"profit\s+before\s+tax"
     r")\b"
 )
 
 YEAR_RE = re.compile(r"\b(20[1-3]\d)\b")
+YEAR_ENDED_RE = re.compile(
+    r"(?i)(?:year|period)\s+ended\s+"
+    r"(?:\d{1,2}\s+)?"
+    r"(?:january|february|march|april|may|june|july|august|september|"
+    r"october|november|december)\s+"
+    r"(20[1-3]\d)"
+)
+
+
+_AT_DATE_RE = re.compile(
+    r"(?i)\b(?:as\s+at|at)\s+\d{1,2}\s+"
+    r"(?:january|february|march|april|may|june|july|august|september|"
+    r"october|november|december)\s+(20[1-3]\d)"
+)
+
+
+def year_ended_from_text(text: str) -> Optional[str]:
+    """Best-effort current period year from statement title lines."""
+    blob = text or ""
+    m = YEAR_ENDED_RE.search(blob)
+    if m:
+        return m.group(1)
+    m = _AT_DATE_RE.search(blob)
+    if m:
+        return m.group(1)
+    return None
+
 NUMBER_TOKEN_RE = re.compile(
     r"^\(?-?£?-?[\d,]+(?:\.\d+)?\)?%?$|^[\d,]+(?:\.\d+)?$"
 )
@@ -228,12 +270,22 @@ def detect_scale_prefer_header(text: str, *, header_extra: str = "") -> int:
 
 
 def detect_section(text: str) -> Optional[str]:
+    """Return statement type for a page.
+
+    When multiple patterns match (common on OCR pages that mention both the
+    balance sheet header and a later P&L cross-reference), prefer the match
+    that appears earliest in the page text so the header wins.
+    """
     t = _norm(text)
+    best_section = None
+    best_pos = 10**9
     for section, patterns in SECTION_PATTERNS.items():
         for pat in patterns:
-            if re.search(pat, t):
-                return section
-    return None
+            m = re.search(pat, t)
+            if m and m.start() < best_pos:
+                best_pos = m.start()
+                best_section = section
+    return best_section
 
 
 def page_mentions_financials(text: str) -> bool:
@@ -245,18 +297,31 @@ def page_mentions_financials(text: str) -> bool:
     return bool(PROBE_KEYWORDS.search(text))
 
 
-def parse_number_token(token: str) -> Optional[float]:
-    t = token.strip().replace("\xa0", "").replace(",", "").replace("£", "")
-    if not t or t in ("—", "–", "-", "−", "n/a", "na"):
+def parse_number_token(token: str, *, scale_hint: int = 1) -> Optional[float]:
+    raw = token.strip().replace("\xa0", "").replace("£", "").replace("$", "")
+    if not raw or raw in ("—", "–", "-", "−", "n/a", "na"):
         return None
     # Skip pure years used as headers
-    if re.fullmatch(r"20[1-3]\d", t):
+    if re.fullmatch(r"20[1-3]\d", raw):
         return None
     neg = False
+    t = raw
     if t.startswith("(") and t.endswith(")"):
         neg = True
         t = t[1:-1]
-    t = t.replace("%", "").replace("−", "-")
+    t = t.replace("%", "").replace("−", "-").strip()
+    # Normal UK thousands: strip commas 2,488.6 → 2488.6
+    if "," in t and re.fullmatch(r"-?\d{1,3}(,\d{3})+(\.\d+)?", t):
+        t = t.replace(",", "")
+    elif "," in t:
+        # OCR mixed junk — drop commas
+        t = t.replace(",", "")
+    # £m OCR often turns 2,296.3 into 2.2963 (comma→dot collapsed)
+    if scale_hint >= 1_000_000 and re.fullmatch(r"-?\d{1,3}\.\d{4}", t):
+        sign = "-" if t.startswith("-") else ""
+        body = t.lstrip("-")
+        a, b = body.split(".", 1)
+        t = f"{sign}{a}{b[:3]}.{b[3:]}"  # 2.2963 → 2296.3
     if not re.fullmatch(r"-?\d+(?:\.\d+)?", t):
         return None
     try:
@@ -408,55 +473,236 @@ def _ocr_page_text_only(
 
 
 CONTENTS_PAGE_RE = re.compile(
-    r"(?i)(profit\s*(?:and|&)\s*loss\s*account|balance\s*sheet|"
-    r"statement\s+of\s+financial\s+position|cash\s*flows?|"
-    r"statement\s+of\s+changes\s+in\s+equity)"
-    r"[^\d]{0,40}?(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?"
+    r"(?i)("
+    r"(?:consolidated\s+|group\s+)?"
+    r"(?:statement\s+of\s+)?"
+    r"(?:comprehensive\s+)?income|"
+    r"(?:consolidated\s+|group\s+)?(?:profit\s*(?:and|&)\s*loss(?:\s+account)?|"
+    r"income\s+statement)|"
+    r"(?:consolidated\s+|group\s+)?balance\s*sheet|"
+    r"(?:consolidated\s+|group\s+)?statement\s+of\s+financial\s+position|"
+    r"(?:consolidated\s+|group\s+)?(?:statement\s+of\s+)?cash\s*flows?|"
+    r"statement\s+of\s+changes\s+in\s+equity"
+    r")"
+    r"[^\d]{0,60}?(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?"
+)
+
+# Stronger contents lines: "Consolidated income statement ..... 86"
+CONTENTS_LINE_RE = re.compile(
+    r"(?i)^\s*("
+    r"(?:consolidated|group)\s+(?:statement\s+of\s+)?(?:comprehensive\s+)?income|"
+    r"(?:consolidated|group)\s+profit\s*(?:and|&)\s*loss|"
+    r"(?:consolidated|group)\s+income\s+statement|"
+    r"(?:consolidated|group)\s+balance\s*sheet|"
+    r"(?:consolidated|group)\s+statement\s+of\s+financial\s+position|"
+    r"(?:consolidated|group)\s+(?:statement\s+of\s+)?cash\s*flows?|"
+    r"profit\s*(?:and|&)\s*loss\s+account|"
+    r"balance\s*sheet|"
+    r"statement\s+of\s+financial\s+position|"
+    r"statement\s+of\s+cash\s*flows?"
+    r").{0,80}?(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?\s*$",
+    re.M,
 )
 
 
 def contents_page_hints(text: str) -> list[int]:
     """Parse contents-page OCR for printed statement page numbers (1-based)."""
     pages: list[int] = []
-    for m in CONTENTS_PAGE_RE.finditer(text or ""):
-        for g in m.groups()[1:]:
-            if not g:
-                continue
-            try:
-                pages.append(int(g))
-            except ValueError:
-                pass
-    return pages
+    blob = text or ""
+    for cre in (CONTENTS_LINE_RE, CONTENTS_PAGE_RE):
+        for m in cre.finditer(blob):
+            for g in m.groups()[1:]:
+                if not g:
+                    continue
+                try:
+                    pages.append(int(g))
+                except ValueError:
+                    pass
+    # Dedupe preserve order
+    seen: set[int] = set()
+    out: list[int] = []
+    for p in pages:
+        if p not in seen and 1 <= p <= 400:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
+def adaptive_probe_stride(n_pages: int) -> int:
+    """Stride grows with document length so long reports still get whole-doc coverage."""
+    if n_pages <= 40:
+        return 1
+    if n_pages <= 80:
+        return 2
+    if n_pages <= 120:
+        return 3
+    if n_pages <= 200:
+        return 4
+    return 5
+
+
+def select_probe_indices(
+    n_pages: int,
+    *,
+    max_probe: int = MAX_PROBE_PAGES,
+    stride: int | None = None,
+    hit_indices: list[int] | None = None,
+) -> tuple[list[int], int]:
+    """
+    Choose 0-based page indices to probe across the *whole* document.
+
+    Long UK group reports (150–200+ pages) put financial statements in the
+    middle/back — never only the first ~40–50 pages. Dense front for contents,
+    adaptive stride overall, denser mid/back band. Cap total probes at max_probe.
+
+    ``hit_indices`` is unused for selection (kept for API symmetry / tests that
+    pass known hits when composing candidate windows separately).
+    """
+    del hit_indices  # selection does not depend on prior hits
+    if n_pages <= 0:
+        return [], 1
+    stride = adaptive_probe_stride(n_pages) if stride is None else max(1, int(stride))
+    indices: set[int] = set()
+
+    # Dense front matter / contents / directors pages
+    for i in range(0, min(12, n_pages)):
+        indices.add(i)
+
+    # Whole-document stride (covers back half of long reports)
+    for i in range(0, n_pages, stride):
+        indices.add(i)
+    # Always include last page
+    indices.add(n_pages - 1)
+
+    # Denser mid/back where consolidated statements usually sit
+    mid_start = int(n_pages * 0.35)
+    mid_end = min(n_pages, int(n_pages * 0.95) + 1)
+    dense = max(2, stride - 1)
+    for i in range(mid_start, mid_end, dense):
+        indices.add(i)
+
+    # Extra density in the classic "accounts block" for mid-size docs
+    if 40 < n_pages <= 120:
+        for i in range(min(15, n_pages), min(n_pages, 55), 2):
+            indices.add(i)
+
+    sorted_idx = sorted(indices)
+    if len(sorted_idx) <= max_probe:
+        return sorted_idx, stride
+
+    # Cap: keep all front pages, then prefer mid/back over early narrative
+    front = [i for i in sorted_idx if i < 12]
+    mid_back = [i for i in sorted_idx if mid_start <= i < mid_end]
+    other = [i for i in sorted_idx if i not in set(front) and i not in set(mid_back)]
+    kept: list[int] = list(front)
+    budget = max_probe - len(kept)
+    # Take mid_back first (evenly subsampled if needed), then other
+    if len(mid_back) <= budget:
+        kept.extend(mid_back)
+        budget = max_probe - len(kept)
+        if budget > 0 and other:
+            step = max(1, len(other) // budget)
+            kept.extend(other[::step][:budget])
+    else:
+        step = max(1, len(mid_back) // budget)
+        kept.extend(mid_back[::step][:budget])
+    return sorted(set(kept))[:max_probe], stride
+
+
+def probe_hit_priority(page_index: int, n_pages: int, *, from_contents: bool = False) -> int:
+    """Higher = more likely a real statement page (vs front-matter keyword noise)."""
+    if from_contents:
+        return 100
+    # Prefer middle/back of long docs over cover / strategic report chatter
+    if n_pages >= 80:
+        if page_index >= int(n_pages * 0.35):
+            return 50
+        if page_index >= 12:
+            return 20
+        return 5
+    if page_index >= 8:
+        return 40
+    return 10
+
+
+def prioritize_ocr_candidates(
+    hits: list[int],
+    n_pages: int,
+    *,
+    contents_hits: list[int] | None = None,
+    neighbour: int = OCR_NEIGHBOUR,
+    max_pages: int = MAX_FULL_OCR_PAGES,
+) -> list[int]:
+    """
+    Expand hits by ±neighbour, score, and cap to ``max_pages``.
+
+    Contents-hint and mid/back statement hits win over front-matter.
+    """
+    contents_set = set(contents_hits or [])
+    scored: dict[int, int] = {}
+
+    def bump(p: int, base: int, dist: int) -> None:
+        if not (0 <= p < n_pages):
+            return
+        # Neighbours slightly below the seed page
+        score = base - abs(dist)
+        scored[p] = max(scored.get(p, 0), score)
+
+    seeds = sorted(set(hits) | contents_set)
+    for h in seeds:
+        base = probe_hit_priority(h, n_pages, from_contents=h in contents_set)
+        for d in range(-neighbour, neighbour + 1):
+            bump(h + d, base, d)
+
+    # Sort by score desc, then page asc for stability
+    ordered = sorted(scored.keys(), key=lambda p: (-scored[p], p))
+    return ordered[: max(1, max_pages)] if ordered else []
 
 
 def probe_financial_pages(
     content: bytes,
     n_pages: int,
     *,
-    stride: int = PROBE_STRIDE,
+    stride: int | None = None,
     max_probe: int = MAX_PROBE_PAGES,
+    ocr_text_fn=None,
 ) -> tuple[list[int], dict[str, Any]]:
     """
-    Low-res / every-Nth-page probe to find pages mentioning financial statements.
-    Returns candidate page indices (0-based) and probe stats.
+    Low-res / strided probe across the whole document for financial keywords.
+
+    Returns candidate hit page indices (0-based) and probe stats.
+    ``ocr_text_fn(content, page_index) -> str`` injectable for unit tests.
     """
+    ocr_fn = ocr_text_fn or (
+        lambda c, i: _ocr_page_text_only(c, i, dpi_scale=PROBE_DPI_SCALE)
+    )
+    indices, used_stride = select_probe_indices(
+        n_pages, max_probe=max_probe, stride=stride
+    )
     hits: list[int] = []
+    contents_printed: list[int] = []
     probe_stats: dict[str, Any] = {
         "probed_pages": [],
         "hit_pages": [],
-        "stride": stride,
+        "stride": used_stride,
+        "n_pages": n_pages,
+        "max_probe": max_probe,
+        "contents_printed_pages": [],
     }
-    limit = min(n_pages, max_probe)
-    # Always include early pages (cover/contents often list statement page nos)
-    indices = sorted(set(list(range(0, min(5, limit))) + list(range(0, limit, max(1, stride)))))
     for i in indices:
-        text = _ocr_page_text_only(content, i, dpi_scale=PROBE_DPI_SCALE)
+        text = ocr_fn(content, i)
         probe_stats["probed_pages"].append(i)
         if page_mentions_financials(text):
             hits.append(i)
             probe_stats["hit_pages"].append(i)
-            # Contents pages often only *mention* statements — keep probing
-            # If this page looks like an actual statement header, still record it
+        # Contents / index pages: early or pages that look like a TOC
+        low = (text or "").lower()
+        if i < 15 or "contents" in low or "page" in low[:200]:
+            printed = contents_page_hints(text)
+            if printed:
+                contents_printed.extend(printed)
+    if contents_printed:
+        probe_stats["contents_printed_pages"] = sorted(set(contents_printed))
     return hits, probe_stats
 
 
@@ -474,6 +720,18 @@ def expand_candidate_pages(
             if 0 <= p < n_pages:
                 selected.add(p)
     return sorted(selected)
+
+
+def printed_pages_to_indices(printed_pages: list[int], n_pages: int) -> list[int]:
+    """Map 1-based printed page numbers to likely 0-based PDF indices."""
+    out: list[int] = []
+    for printed in printed_pages:
+        # Cover/front matter offset: printed N often near index N-1 .. N+3
+        for idx in (printed - 1, printed, printed + 1, printed + 2, printed + 3):
+            if 0 <= idx < n_pages:
+                out.append(idx)
+    return sorted(set(out))
+
 
 
 def cluster_rows(page_words: list[Word], y_tol: float = 4.0) -> list[list[Word]]:
@@ -494,7 +752,7 @@ def cluster_rows(page_words: list[Word], y_tol: float = 4.0) -> list[list[Word]]
     return rows
 
 
-def detect_year_columns(rows: list[list[Word]], page_width: float) -> list[tuple[str, float]]:
+def detect_year_columns(rows: list[list[Word]], page_width: float, *, title_year: Optional[str] = None) -> list[tuple[str, float]]:
     """
     Return list of (year, center_x) for comparative year headers.
 
@@ -554,6 +812,22 @@ def detect_year_columns(rows: list[list[Word]], page_width: float) -> list[tuple
             seen.add(y)
             year_cols.append((y, mid))
     year_cols.sort(key=lambda t: t[1])
+    # If OCR only caught the prior-year header, synthesise current from title
+    if title_year and year_cols:
+        years_only = {y for y, _ in year_cols}
+        if title_year not in years_only and len(year_cols) == 1:
+            prior_y, prior_x = year_cols[0]
+            # Place current year column to the left of prior (UK comparative layout)
+            delta = max(60.0, page_width * 0.12 if page_width else 60.0)
+            year_cols = [(title_year, max(prior_x - delta, page_width * 0.35 if page_width else prior_x - delta)), (prior_y, prior_x)]
+            year_cols.sort(key=lambda t: t[1])
+    elif title_year and not year_cols:
+        # No year tokens — invent two columns in the right half for comparative OCR
+        if page_width:
+            year_cols = [
+                (title_year, page_width * 0.55),
+                (str(int(title_year) - 1), page_width * 0.78),
+            ]
     return year_cols
 
 
@@ -604,6 +878,8 @@ def _label_and_numbers(
     row: list[Word],
     year_cols: list[tuple[str, float]],
     page_width: float,
+    *,
+    scale: int = 1,
 ) -> tuple[str, dict[str, float], list[str]]:
     """Split a row into left-side label and year-aligned numbers.
 
@@ -629,7 +905,7 @@ def _label_and_numbers(
     for w in row:
         mid = (w.x0 + w.x1) / 2
         tok = w.text.strip()
-        is_num = bool(NUMBER_TOKEN_RE.match(tok.replace(" ", ""))) and parse_number_token(tok) is not None
+        is_num = bool(NUMBER_TOKEN_RE.match(tok.replace(" ", ""))) and parse_number_token(tok, scale_hint=scale) is not None
         if YEAR_RE.fullmatch(tok):
             continue
         if is_num and mid >= split_x:
@@ -647,7 +923,7 @@ def _label_and_numbers(
         # year -> list of (distance, is_note, abs_val, val)
         candidates: dict[str, list[tuple[float, bool, float, float]]] = {}
         for w in number_words:
-            val = parse_number_token(w.text)
+            val = parse_number_token(w.text, scale_hint=scale)
             if val is None:
                 continue
             mid = (w.x0 + w.x1) / 2
@@ -668,7 +944,7 @@ def _label_and_numbers(
     elif number_words:
         # No year headers: skip leading note refs; take first real amount
         for w in number_words:
-            val = parse_number_token(w.text)
+            val = parse_number_token(w.text, scale_hint=scale)
             if val is None or _is_note_ref(val):
                 continue
             values[""] = val
@@ -681,7 +957,7 @@ def extract_rows_from_words(
     words: list[Word],
     page_texts: list[str],
     *,
-    max_pages: int = 80,
+    max_pages: int = 250,
     default_method: str = "pdf",
     ocr_page_set: Optional[set[int]] = None,
     y_tol: float = 4.0,
@@ -731,10 +1007,14 @@ def extract_rows_from_words(
         elif page_scale != 1 and active_section:
             active_scale = page_scale
 
-        year_cols = detect_year_columns(rows, page_width)
+        title_year = year_ended_from_text(text)
+        year_cols = detect_year_columns(rows, page_width, title_year=title_year)
         if year_cols:
             year_cols = refine_year_columns(rows, year_cols, page_width)
             active_years = year_cols
+        elif active_years and title_year:
+            # Keep sticky years but rename left column to title year when obvious
+            pass
 
         # Drop sticky section on narrative / notes pages so note tables do not
         # inherit Balance Sheet / P&L and pollute primary statements.
@@ -748,6 +1028,17 @@ def extract_rows_from_words(
             active_years = []
             continue
 
+        # Prefer consolidated/group statements; skip company-only BS/P&L pages
+        # when the page header clearly says Company (not Group/Consolidated).
+        if re.search(r"(?i)\bcompany\s+balance\s+sheet\b", text or "") and not re.search(
+            r"(?i)\b(consolidated|group)\s+balance\s+sheet\b", text or ""
+        ):
+            continue
+        if re.search(r"(?i)\bcompany\s+(profit\s*(?:and|&)\s*loss|income\s+statement)\b", text or "") and not re.search(
+            r"(?i)\b(consolidated|group)\s+(profit|income)", text or ""
+        ):
+            continue
+
         # Only extract from pages that have comparative year headers on-page.
         # Contents / strategic report / notes mention statement names but must not
         # contribute figures (they poison year buckets via first-wins merge).
@@ -758,7 +1049,7 @@ def extract_rows_from_words(
 
         pending_header: Optional[str] = None
         for row in rows:
-            label, values, raw_nums = _label_and_numbers(row, year_cols, page_width)
+            label, values, raw_nums = _label_and_numbers(row, year_cols, page_width, scale=active_scale)
             norm_label = _norm(label) if label else ""
             if label and not values:
                 if norm_label in (
@@ -827,48 +1118,68 @@ def _smart_ocr_words(
     hits, probe_stats = probe_financial_pages(content, n_pages)
     stats["ocr_probe"] = probe_stats
 
-    # Contents pages (usually 0-4) often list "Profit and loss account 17"
-    # Convert printed page numbers → 0-based indices (printed footer ≈ index+offset).
-    # Heuristic: printed page N often lands near PDF index N or N+2 for cover/front matter.
-    contents_hits: list[int] = []
-    for early in list(probe_stats.get("probed_pages") or [])[:5]:
-        # Re-use already-probed text via a cheap re-OCR only if we have hits later;
-        # instead OCR text_only already ran — call again is OK for early pages (cached by OS).
+    contents_hits: list[int] = printed_pages_to_indices(
+        probe_stats.get("contents_printed_pages") or [], n_pages
+    )
+    # Also scrape contents from the first few probed pages even if keyword-missed
+    for early in list(probe_stats.get("probed_pages") or [])[:12]:
+        if early >= 15:
+            break
         text = _ocr_page_text_only(content, early, dpi_scale=PROBE_DPI_SCALE)
-        for printed in contents_page_hints(text):
-            for idx in (printed - 1, printed, printed + 1, printed + 2):
-                if 0 <= idx < n_pages:
-                    contents_hits.append(idx)
+        printed = contents_page_hints(text)
+        if printed:
+            contents_hits.extend(printed_pages_to_indices(printed, n_pages))
+    contents_hits = sorted(set(contents_hits))
     if contents_hits:
-        probe_stats["contents_hints"] = sorted(set(contents_hits))
+        probe_stats["contents_hints"] = contents_hits
         hits = sorted(set(hits + contents_hits))
 
-    candidates = expand_candidate_pages(hits, n_pages)
-    # If contents hints exist, prefer a tighter candidate set around them + probe hits
-    if contents_hits:
-        tight = expand_candidate_pages(sorted(set(contents_hits + hits[:])), n_pages, neighbour=1)
-        # Keep early cover/contents pages out unless they were keyword hits
-        tight = [p for p in tight if p >= 8 or p in hits]
-        if tight:
-            candidates = tight
-    # Fallback: if probe found nothing, try a broader middle band of the doc
-    # (statements usually sit after directors/audit reports ~ pages 10–35)
-    if not candidates:
+    candidates = prioritize_ocr_candidates(
+        hits,
+        n_pages,
+        contents_hits=contents_hits,
+        neighbour=OCR_NEIGHBOUR,
+        max_pages=MAX_FULL_OCR_PAGES,
+    )
+
+    # Fallback: denser probe in mid/back if nothing useful found
+    if not candidates or (
+        n_pages >= 80
+        and not contents_hits
+        and not any(h >= int(n_pages * 0.3) for h in hits)
+    ):
         stats["ocr_probe_fallback"] = True
-        mid_start = min(8, n_pages)
-        mid_end = min(n_pages, max(mid_start + 1, 35))
-        # Probe denser in the middle
+        mid_start = min(max(12, int(n_pages * 0.35)), n_pages)
+        mid_end = min(n_pages, max(mid_start + 1, int(n_pages * 0.85)))
         extra_hits: list[int] = []
-        for i in range(mid_start, mid_end):
-            text = _ocr_page_text_only(content, i, dpi_scale=PROBE_DPI_SCALE)
-            if page_mentions_financials(text):
+        # Stride-2 denser pass in the accounts band
+        for i in range(mid_start, mid_end, 2):
+            if i in probe_stats.get("probed_pages", []):
+                continue
+            plain = _ocr_page_text_only(content, i, dpi_scale=PROBE_DPI_SCALE)
+            probe_stats.setdefault("probed_pages", []).append(i)
+            if page_mentions_financials(plain):
                 extra_hits.append(i)
-        candidates = expand_candidate_pages(extra_hits, n_pages)
-        stats.setdefault("ocr_probe", {})["fallback_hits"] = extra_hits
+                probe_stats.setdefault("hit_pages", []).append(i)
+        hits = sorted(set(hits + extra_hits))
+        candidates = prioritize_ocr_candidates(
+            hits,
+            n_pages,
+            contents_hits=contents_hits,
+            neighbour=OCR_NEIGHBOUR,
+            max_pages=MAX_FULL_OCR_PAGES,
+        )
+        probe_stats["fallback_hits"] = extra_hits
 
     if not candidates:
-        # Last resort: full-OCR a small fixed window where UK accounts usually live
-        candidates = list(range(min(12, n_pages), min(n_pages, 25)))
+        # Last resort: full-OCR a window in the mid/back accounts zone
+        if n_pages >= 80:
+            start = int(n_pages * 0.45)
+            end = min(n_pages, start + 15)
+        else:
+            start = min(12, n_pages)
+            end = min(n_pages, max(start + 1, 25))
+        candidates = list(range(start, end))[:MAX_FULL_OCR_PAGES]
         stats["ocr_blind_window"] = candidates
 
     stats["ocr_candidate_pages"] = candidates
@@ -886,7 +1197,20 @@ def _smart_ocr_words(
 
     stats["ocr_used"] = bool(ocr_pages)
     stats["ocr_required"] = True
+    stats["ocr_pages_ocrd"] = len(ocr_pages)
+    stats["ocr_hits"] = len(probe_stats.get("hit_pages") or [])
+    stats["ocr_probed_count"] = len(probe_stats.get("probed_pages") or [])
+    logger.info(
+        "OCR probe n_pages=%s probed=%s hits=%s candidates=%s ocrd=%s contents_hints=%s",
+        n_pages,
+        stats["ocr_probed_count"],
+        stats["ocr_hits"],
+        len(candidates),
+        len(ocr_pages),
+        len(contents_hits),
+    )
     return words, page_texts, ocr_pages
+
 
 
 def extract_from_pdf_bytes(content: bytes, *, allow_ocr: bool = True) -> tuple[list[ExtractedRow], dict[str, Any]]:
@@ -950,8 +1274,6 @@ def extract_from_pdf_bytes(content: bytes, *, allow_ocr: bool = True) -> tuple[l
             }
             to_ocr: set[int] = set()
             for i in sparse_indices:
-                if i > 45:
-                    continue
                 if any(abs(i - s) <= 2 for s in digital_section_pages):
                     to_ocr.add(i)
             # If almost all pages are sparse but not flagged image_only (edge),

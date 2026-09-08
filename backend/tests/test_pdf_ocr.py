@@ -18,7 +18,10 @@ from pdf_extract import (
     extract_rows_from_words,
     is_image_only_pdf,
     page_mentions_financials,
+    prioritize_ocr_candidates,
+    probe_financial_pages,
     rows_to_year_dicts,
+    select_probe_indices,
 )
 from normalize import apply_labelled_items
 
@@ -428,3 +431,86 @@ def test_liability_totals_normalised_positive():
     # Signed P&L expense convention retained
     assert year["income_statement"]["Cost of Sales"]["value"] == -849_480_000
 
+
+
+def test_long_document_probe_selection_covers_whole_doc():
+    """150–200 page reports must probe mid/back, not only the first ~50 pages."""
+    for n in (154, 204):
+        indices, stride = select_probe_indices(n)
+        assert stride >= 3
+        assert max(indices) >= n - 5
+        assert min(indices) == 0
+        # Front contents density
+        assert all(i in indices for i in range(0, min(12, n)))
+        mid = int(n * 0.35)
+        assert any(i >= mid for i in indices), indices[-10:]
+        assert len(indices) <= 80
+        # Cap still yields meaningful mid/back coverage
+        mid_back = [i for i in indices if i >= mid]
+        assert len(mid_back) >= 15
+
+
+def test_prioritize_ocr_candidates_prefers_contents_and_caps():
+    hits = [5, 10, 86, 120]
+    contents = [86, 87]
+    out = prioritize_ocr_candidates(
+        hits, 154, contents_hits=contents, neighbour=2, max_pages=12
+    )
+    assert len(out) <= 12
+    # Contents neighbourhood should appear before early front-matter chatter
+    assert out[0] in {84, 85, 86, 87, 88, 89}
+    assert 86 in out
+
+
+def test_probe_financial_pages_injectable_ocr_covers_back_half():
+    """Synthetic page_count + hit indices via injectable OCR text fn."""
+    n = 160
+    # Financial statement pages only in the back half
+    hit_set = {92, 93, 110}
+
+    def fake_ocr(_content, i):
+        if i in (2, 3):
+            return "Contents\nConsolidated income statement ...... 93\nGroup balance sheet 94"
+        if i in hit_set:
+            return "Consolidated income statement\nTurnover 1,000 900"
+        if i % 7 == 0:
+            return "Strategic report narrative only"
+        return "Directors report waffle"
+
+    hits, stats = probe_financial_pages(b"%PDF", n, ocr_text_fn=fake_ocr)
+    assert any(i >= 90 for i in stats["probed_pages"]), stats["probed_pages"][-5:]
+    assert 92 in hits or 93 in hits
+    assert stats.get("contents_printed_pages")
+    assert 93 in stats["contents_printed_pages"]
+
+
+def test_expand_candidate_pages_default_neighbour_is_two():
+    assert expand_candidate_pages([10], 50) == [8, 9, 10, 11, 12]
+
+
+def test_group_contents_page_hints():
+    from pdf_extract import contents_page_hints
+
+    pages = contents_page_hints(
+        "Consolidated income statement ..... 86\n"
+        "Group balance sheet 87-88\n"
+        "Consolidated cash flow statement 90"
+    )
+    assert 86 in pages and 87 in pages and 88 in pages and 90 in pages
+
+
+def test_detect_section_prefers_earliest_header():
+    """Balance sheet header must win over a later P&L cross-reference."""
+    text = (
+        "Consolidated balance sheet\nAt 31 December 2025\nFixed assets 10\n"
+        "See note 4 and the profit and loss account for further detail."
+    )
+    assert detect_section(text) == "balance_sheet"
+
+
+def test_year_ended_and_millions_ocr_recovery():
+    from pdf_extract import year_ended_from_text, parse_number_token
+
+    assert year_ended_from_text("For the year ended 31 December 2025") == "2025"
+    assert parse_number_token("2.2963", scale_hint=1_000_000) == 2296.3
+    assert parse_number_token("2,488.6", scale_hint=1_000_000) == 2488.6
